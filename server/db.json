@@ -1,0 +1,64 @@
+{
+  "workouts": [
+    {
+      "id": 1757095285755,
+      "created_at": "2025-09-05T18:01:25.755Z",
+      "warmup": [
+        {
+          "name": "Arm circles",
+          "duration_or_reps": 30,
+          "unit": "time",
+          "notes": "small -> big circles"
+        },
+        {
+          "name": "Jumping jacks",
+          "duration_or_reps": 30,
+          "unit": "time",
+          "notes": "easy pace"
+        }
+      ],
+      "main": [
+        {
+          "name": "High knees",
+          "duration_or_reps": 200,
+          "unit": "time",
+          "notes": "fast tempo"
+        },
+        {
+          "name": "Mountain climbers",
+          "duration_or_reps": 100,
+          "unit": "time",
+          "notes": "steady"
+        }
+      ],
+      "cooldown": [
+        {
+          "name": "Hamstring stretch",
+          "duration_or_reps": 45,
+          "unit": "time",
+          "notes": "hold gently"
+        },
+        {
+          "name": "Child's pose",
+          "duration_or_reps": 45,
+          "unit": "time",
+          "notes": "calm breathing"
+        }
+      ],
+      "total_duration_minutes": 10,
+      "intensity_label": "medium",
+      "playlist": [
+        {
+          "title": "medium workout mix",
+          "hint": "search for upbeat electronic workout music",
+          "query": "https://www.youtube.com/results?search_query=electronic%20workout%20mix%20medium"
+        },
+        {
+          "title": "Pump track",
+          "hint": "fast BPM",
+          "query": "https://www.youtube.com/results?search_query=high+bpm+workout+mix"
+        }
+      ]
+    }
+  ]
+}
