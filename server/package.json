@@ -2,13 +2,12 @@
   "name": "microcoach",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
-  "main": "index.cjs",
+  "main": "server/index.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node index.cjs"
+    "start": "node server/index.cjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

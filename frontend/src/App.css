@@ -1,42 +1,187 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* App.css */
+
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Inter", system-ui, sans-serif;
+  background: #121212;
+  color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.app {
+  max-width: 420px;
+  width: 100%;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.title {
+  font-size: 2rem;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #fff;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.streak {
+  color: #ff9800;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.controls select,
+.controls button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+}
+
+.controls select {
+  background: #1f1f1f;
+  color: #fff;
+}
+
+.controls button {
+  background: #4caf50;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.controls button:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+
+.controls button:hover:not(:disabled) {
+  background: #45a049;
 }
 
 .card {
-  padding: 2em;
+  background: #1f1f1f;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
+  margin-bottom: 20px;
 }
 
-.read-the-docs {
-  color: #888;
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.card li {
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: #2a2a2a;
+  position: relative;
+}
+
+.card li.active {
+  border-left: 5px solid #4caf50;
+  background: #333;
+}
+
+.card li.done {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.progress {
+  background: #444;
+  height: 6px;
+  border-radius: 4px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.progress .bar {
+  background: #4caf50;
+  height: 100%;
+  transition: width 1s linear;
+}
+
+.start {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background: #2196f3;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.start:hover {
+  background: #1976d2;
+}
+
+.timer {
+  margin-top: 15px;
+}
+
+.timer p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #ccc;
+}
+
+.timer h3 {
+  font-size: 2rem;
+  margin: 5px 0;
+  color: #fff;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.actions button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #fff;
+  transition: background 0.2s ease;
+}
+
+.actions button:first-child {
+  background: #673ab7;
+}
+
+.actions button:first-child:hover {
+  background: #5e35b1;
+}
+
+.actions button:last-child {
+  background: #e91e63;
+}
+
+.actions button:last-child:hover {
+  background: #c2185b;
 }
