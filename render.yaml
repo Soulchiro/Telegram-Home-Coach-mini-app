@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: microcoach-server
+    env: node
+    plan: free
+    branch: main
+
+    buildCommand: |
+      cd frontend && npm install && npm run build
+      cd ../server && npm install
+
+    startCommand: |
+      cd server && node index.cjs
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000" # Render will override this anyway
+      - key: BOT_TOKEN
+        sync: false
+      - key: PROVIDER_TOKEN
+        sync: false
+      - key: DONATE_AMOUNT_CENTS
+        value: "100"
+      - key: DONATE_CURRENCY
+        value: "USD"
+      - key: PUBLIC_URL
+        sync: false
+      - key: REACT_APP_BOT_USERNAME
+        value: "YourBotUsername"
