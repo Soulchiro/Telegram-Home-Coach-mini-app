@@ -326,56 +326,62 @@ export default function App() {
   }
 
   // Share app: small origin-only link
-  async function shareApp() {
-    const url = `${location.origin}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: "MicroCoach — 5-min home workouts", text: "Try MicroCoach — quick home workouts", url }); return; } catch {}
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try { await navigator.clipboard.writeText(url); alert(`Link copied: ${url}`); } catch { window.prompt("Copy this link:", url); }
+  function shareApp() {
+    // Construct a Telegram-specific URL that opens your Mini App
+    // Replace 'YourBotUsername' with the username of the bot that hosts your app
+    const botUsername = "YourWorkoutBot_Bot"; // No @ symbol
+    const appUrl = `https://t.me/${botUsername}/app?startapp=ref_${user?.id || 'default'}`;
+
+    if (webApp && webApp.shareLink) {
+      // Use Telegram's native share, which is more effective
+      webApp.shareLink(appUrl, "Hey! Check out this awesome 5-min workout bot!");
+    } else if (navigator.share) {
+      // Standard web share
+      navigator.share({ title: "MicroCoach", text: "Quick workouts!", url: appUrl });
+    } else if (navigator.clipboard) {
+      // Fallback: copy link
+      navigator.clipboard.writeText(appUrl).then(() => alert("Link copied!"));
     } else {
-      window.prompt("Copy this link:", url);
+      prompt("Copy this link:", appUrl);
     }
   }
 
   // Donate: call server to get invoice payload and open Telegram WebApp invoice if available
   async function donate() {
-    // fallback bot link if server or Telegram not available
-    const fallbackBot = (process.env && process.env.REACT_APP_BOT_USERNAME) ? `https://t.me/${process.env.REACT_APP_BOT_USERNAME}` : `https://t.me/YourBotUsername`;
+    // 1. Check if we are in Telegram and TON is available
+    if (window.Telegram?.WebApp?.version >= 6.9 && window.ton) {
+      try {
+        // 2. Define the transaction parameters
+        const transaction = {
+          to: UQCkO9yhVbY_d0eTqyTyh71zrDtb3DpLIzKxHAZt1IZrqKha, // e.g., EQAhk1... (Your app's wallet)
+          value: 5000000000n // Amount in nanoTON (5 TON = 5,000,000,000 nanoTON)
+        };
 
-    try {
-      const res = await fetch("/api/create-invoice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount_label: "Support", currency_hint: "USD" }) });
-      if (!res.ok) throw new Error("invoice_failed");
-      const invoicePayload = await res.json();
+        // 3. Send the transaction request to the user's wallet
+        const result = await window.ton.sendTransaction(transaction);
 
-      if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openInvoice === "function") {
-        try {
-          // open invoice in Telegram webapp
-          window.Telegram.WebApp.openInvoice(invoicePayload);
-          return;
-        } catch (e) {
-          console.warn("openInvoice failed:", e);
+        // 4. (Optional) Send the transaction hash to your backend to verify
+        if (result) {
+          console.log("Payment successful!", result);
+          // Maybe show a special "thank you" message or grant premium status
+          alert("Thank you for your support! 🎉");
         }
+      } catch (e) {
+        console.error("TON Payment failed:", e);
+        // Fallback to your existing invoice method
+        await donateViaInvoice();
       }
-
-      // fallback: copy bot link
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(fallbackBot);
-        alert(`Open this in Telegram to support: ${fallbackBot} (link copied)`);
-      } else {
-        window.prompt("Open this in Telegram to support:", fallbackBot);
-      }
-    } catch (e) {
-      console.error("Donate error:", e);
-      // fallback: copy origin + bot string
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(fallbackBot);
-        alert(`Couldn't start invoice. Open: ${fallbackBot}`);
-      } else {
-        window.prompt("Open this in Telegram to support:", fallbackBot);
-      }
+    } else {
+      // Fallback to your existing invoice method if not in Telegram or no TON
+      await donateViaInvoice();
     }
   }
+
+  // Separate your old logic into a fallback function
+  async function donateViaInvoice() {
+    // ... your existing fetch('/api/create-invoice') logic ...
+  }
+
 
   // compute remaining total
   function computeTotalRemaining() {
