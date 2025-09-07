@@ -1,18 +1,23 @@
 // frontend/src/App.jsx
 import React, { useEffect, useRef, useState } from "react";
-import exerciseIcons from "./icons/exerciseIcons";
+import exerciseIcons from "./icons/exerciseIcons"; // optional - keep file if you added icons
 
 /*
-  MicroCoach App.jsx
-  - Pause / Resume
-  - Per-exercise sequential timer + auto-advance
-  - Confetti when done
-  - Support / Donate button (Telegram WebApp openInvoice) fallback to copy bot link
-  - No audio
+  MicroCoach App.jsx - integrated share & donate (TON + invoice fallback)
+  - Drop this in frontend/src/App.jsx
+  - Expects server endpoints:
+      POST /api/generate-workout       (already exists)
+      POST /api/create-invoice        (already exists)
+      POST /api/verify-ton-payment    (optional but recommended for TON)
+  - Env (optional, set in build env):
+      REACT_APP_BOT_USERNAME (without @)  -> used as fallback share link
 */
 
+const BOT_USERNAME = process.env.REACT_APP_BOT_USERNAME || PocketedCoach_bot; // replace in env or here
+const TON_RECEIVER = process.env.REACT_APP_TON_RECEIVER || UQCkO9yhVbY_d0eTqyTyh71zrDtb3DpLIzKxHAZt1IZrqKha; // replace with your TON wallet
+
+// Simplified slug mapping (extend as needed)
 const EXERCISE_SLUGS = {
-  /* same mapping as before — keep your existing slugs */
   "Bodyweight squats": "bodyweight-squats",
   "Push-ups (knees if needed)": "push-ups",
   "Jumping jacks": "jumping-jacks",
@@ -26,9 +31,10 @@ const EXERCISE_SLUGS = {
   "Hamstring stretch": "hamstring-stretch",
   "Child's pose": "childs-pose",
   "World's greatest stretch": "worlds-greatest-stretch",
-  // ... add other slugs you use
+  // add any other exercise name -> slug mappings you used
 };
 
+// placeholder inline SVG
 function PlaceholderSVG({ label = "" }) {
   return (
     <svg width="84" height="64" viewBox="0 0 84 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={label}>
@@ -42,10 +48,11 @@ function PlaceholderSVG({ label = "" }) {
   );
 }
 
+// Exercise row component
 function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
   const slug = EXERCISE_SLUGS[step.name] || step.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const imgSrc = `/images/${slug}.png`;
-  const IconComp = exerciseIcons[slug];
+  const IconComp = exerciseIcons && exerciseIcons[slug];
   const [imgError, setImgError] = useState(false);
 
   const isActive = idx === activeIndex;
@@ -96,18 +103,17 @@ function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
   );
 }
 
-// Confetti helper — simple DOM-based confetti (no libs)
+// Simple confetti DOM
 function Confetti({ active }) {
-  // Render animated falling rectangles when active
   if (!active) return null;
-  const pieces = Array.from({ length: 28 });
+  const pieces = Array.from({ length: 24 });
   return (
     <div aria-hidden style={styles.confettiWrap}>
       {pieces.map((_, i) => {
         const left = Math.round(Math.random() * 100);
         const delay = Math.random() * 0.6;
         const size = 6 + Math.round(Math.random() * 10);
-        const duration = 1500 + Math.round(Math.random() * 1800);
+        const duration = 1200 + Math.round(Math.random() * 1400);
         const bg = ["#0ea5e9", "#7c3aed", "#22c55e", "#f59e0b"][Math.floor(Math.random() * 4)];
         return (
           <div
@@ -153,14 +159,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // routine state
-  const [running, setRunning] = useState(false);      // interval active
-  const [paused, setPaused] = useState(false);        // paused by user
+  // execution
+  const [running, setRunning] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [remainingForActive, setRemainingForActive] = useState(0);
   const intervalRef = useRef(null);
 
-  // refs to keep latest for interval callback
+  // refs for latest values in interval
   const segmentsRef = useRef(segments);
   const activeIndexRef = useRef(activeIndex);
   const remainingRef = useRef(remainingForActive);
@@ -169,19 +175,17 @@ export default function App() {
   useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
   useEffect(() => { remainingRef.current = remainingForActive; }, [remainingForActive]);
 
-  useEffect(() => {
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, []);
+  useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
 
-  // streak
+  // streak state
   const [streak, setStreak] = useState(() => loadStreak().count || 0);
   const [lastDate, setLastDate] = useState(() => loadStreak().last || null);
   useEffect(() => { saveStreak({ count: streak, last: lastDate }); }, [streak, lastDate]);
 
-  // completed flag for UI to show donate button
+  // completed flag
   const allCompleted = segments.length > 0 && segments.every(s => s._completed);
 
-  // Generate a routine from server
+  // Generate routine
   async function generate() {
     setLoading(true);
     setError(null);
@@ -209,7 +213,7 @@ export default function App() {
     }
   }
 
-  // Save workout (small local persistence via server)
+  // Save workout (file-based endpoint)
   async function save() {
     if (!plan) return;
     try {
@@ -222,7 +226,7 @@ export default function App() {
     }
   }
 
-  // mark streak once per day when starting
+  // mark streak when starting
   function markStreakOnStart() {
     const s = loadStreak();
     const today = todayISO();
@@ -237,11 +241,10 @@ export default function App() {
     }
   }
 
-  // start or resume routine
+  // Start / resume routine
   function startOrResumeRoutine() {
     if (!segments || segments.length === 0) return;
     if (!running && !paused) {
-      // fresh start -> pick first non-completed
       const startIdx = segments.findIndex(s => !s._completed);
       const idx = startIdx === -1 ? 0 : startIdx;
       const seg = segments[idx];
@@ -252,11 +255,9 @@ export default function App() {
       setPaused(false);
       markStreakOnStart();
     } else if (!running && paused) {
-      // resume
       setRunning(true);
       setPaused(false);
     } else {
-      // already running
       return;
     }
 
@@ -303,7 +304,6 @@ export default function App() {
         setActiveIndex(-1);
         setRemainingForActive(0);
       } else {
-        // advance
         setActiveIndex(next);
         setRemainingForActive(Number(latestSegs[next].duration_or_reps) || 0);
       }
@@ -322,68 +322,9 @@ export default function App() {
     setPaused(false);
     setActiveIndex(-1);
     setRemainingForActive(0);
-    // do not clear completed flags — keep history
   }
 
-  // Share app: small origin-only link
-  function shareApp() {
-    // Construct a Telegram-specific URL that opens your Mini App
-    // Replace 'YourBotUsername' with the username of the bot that hosts your app
-    const botUsername = "YourWorkoutBot_Bot"; // No @ symbol
-    const appUrl = `https://t.me/${botUsername}/app?startapp=ref_${user?.id || 'default'}`;
-
-    if (webApp && webApp.shareLink) {
-      // Use Telegram's native share, which is more effective
-      webApp.shareLink(appUrl, "Hey! Check out this awesome 5-min workout bot!");
-    } else if (navigator.share) {
-      // Standard web share
-      navigator.share({ title: "MicroCoach", text: "Quick workouts!", url: appUrl });
-    } else if (navigator.clipboard) {
-      // Fallback: copy link
-      navigator.clipboard.writeText(appUrl).then(() => alert("Link copied!"));
-    } else {
-      prompt("Copy this link:", appUrl);
-    }
-  }
-
-  // Donate: call server to get invoice payload and open Telegram WebApp invoice if available
-  async function donate() {
-    // 1. Check if we are in Telegram and TON is available
-    if (window.Telegram?.WebApp?.version >= 6.9 && window.ton) {
-      try {
-        // 2. Define the transaction parameters
-        const transaction = {
-          to: UQCkO9yhVbY_d0eTqyTyh71zrDtb3DpLIzKxHAZt1IZrqKha, // e.g., EQAhk1... (Your app's wallet)
-          value: 5000000000n // Amount in nanoTON (5 TON = 5,000,000,000 nanoTON)
-        };
-
-        // 3. Send the transaction request to the user's wallet
-        const result = await window.ton.sendTransaction(transaction);
-
-        // 4. (Optional) Send the transaction hash to your backend to verify
-        if (result) {
-          console.log("Payment successful!", result);
-          // Maybe show a special "thank you" message or grant premium status
-          alert("Thank you for your support! 🎉");
-        }
-      } catch (e) {
-        console.error("TON Payment failed:", e);
-        // Fallback to your existing invoice method
-        await donateViaInvoice();
-      }
-    } else {
-      // Fallback to your existing invoice method if not in Telegram or no TON
-      await donateViaInvoice();
-    }
-  }
-
-  // Separate your old logic into a fallback function
-  async function donateViaInvoice() {
-    // ... your existing fetch('/api/create-invoice') logic ...
-  }
-
-
-  // compute remaining total
+  // compute total remaining
   function computeTotalRemaining() {
     if (running && activeIndex >= 0) {
       const later = segmentsRef.current.slice(activeIndex + 1).reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
@@ -398,6 +339,136 @@ export default function App() {
     return `${m}:${s}`;
   }
 
+  // ---- SHARE / DONATE FLOW ----
+
+  // Share: prefer Telegram deep link, then navigator.share, telegram.me share, clipboard
+  async function shareApp({ user } = {}) {
+    const uid = (user && (user.id || user.user_id)) ? (user.id || user.user_id) : "default";
+    const appUrl = `https://t.me/${BOT_USERNAME}?start=ref_${encodeURIComponent(uid)}`;
+
+    // Telegram WebApp openLink
+    if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openLink === "function") {
+      try { window.Telegram.WebApp.openLink(appUrl); return; } catch (e) { console.warn("Telegram openLink failed", e); }
+    }
+
+    // Native share
+    if (navigator.share) {
+      try { await navigator.share({ title: "MicroCoach — 5-min workouts", text: "Quick at-home workout — try MicroCoach!", url: appUrl }); return; } catch (e) { console.warn("navigator.share failed", e); }
+    }
+
+    // telegram.me share
+    try {
+      const telegramShareUrl = `https://telegram.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent("Try MicroCoach — quick 5-min home workouts!")}`;
+      window.open(telegramShareUrl, "_blank", "noopener,noreferrer");
+      return;
+    } catch (e) {
+      console.warn("telegram.me fallback failed", e);
+    }
+
+    // copy to clipboard
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(appUrl);
+        alert("Link copied to clipboard!");
+        return;
+      }
+    } catch (e) { console.warn("clipboard failed", e); }
+
+    window.prompt("Copy this link:", appUrl);
+  }
+
+  // Donate: try TON wallet if available, fallback to invoice
+  async function donate() {
+    const inTelegram = !!(window.Telegram && window.Telegram.WebApp);
+    const hasTonWallet = !!(window.ton && typeof window.ton.sendTransaction === "function");
+
+    // Amount configuration (modify as you like)
+    const AMOUNT_TON = 1.0; // 1 TON as example
+    const AMOUNT_NANOTON = Math.round(AMOUNT_TON * 1_000_000_000); // nanoTON integer
+
+    if (inTelegram && hasTonWallet) {
+      try {
+        const tx = { to: TON_RECEIVER, value: String(AMOUNT_NANOTON) };
+        const result = await window.ton.sendTransaction(tx);
+        const txHash = typeof result === "string" ? result : (result && (result.transactionHash || result.txHash || result.hash));
+        if (txHash) {
+          // notify server to verify the on-chain tx (implement /api/verify-ton-payment)
+          try {
+            const resp = await fetch("/api/verify-ton-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ txHash, to: TON_RECEIVER, amountNano: String(AMOUNT_NANOTON) })
+            });
+            const j = await resp.json();
+            if (resp.ok && j && j.verified) {
+              alert("Thank you! Payment verified. 🎉");
+              return;
+            } else {
+              alert("Payment sent. Verification pending — thank you!");
+              return;
+            }
+          } catch (err) {
+            console.warn("verify-ton-payment failed:", err);
+            alert("Payment sent — verification pending. Thank you!");
+            return;
+          }
+        } else {
+          console.warn("TON wallet returned no txHash, falling back.");
+          await donateViaInvoice();
+          return;
+        }
+      } catch (e) {
+        console.error("TON payment failed:", e);
+        await donateViaInvoice();
+        return;
+      }
+    }
+
+    // fallback
+    await donateViaInvoice();
+  }
+
+  // Fallback invoice using existing server endpoint
+  async function donateViaInvoice() {
+    try {
+      const res = await fetch("/api/create-invoice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount_label: "Support", currency_hint: "USD" }) });
+      if (!res.ok) throw new Error("invoice request failed");
+      const invoicePayload = await res.json();
+
+      // Try to open inside Telegram WebApp if available
+      if (window.Telegram && window.Telegram.WebApp) {
+        if (typeof window.Telegram.WebApp.openInvoice === "function") {
+          try { window.Telegram.WebApp.openInvoice(invoicePayload); return; } catch (err) { console.warn("openInvoice failed", err); }
+        }
+        if (typeof invoicePayload === "string" && typeof window.Telegram.WebApp.openLink === "function") {
+          window.Telegram.WebApp.openLink(invoicePayload);
+          return;
+        }
+      }
+
+      if (invoicePayload && invoicePayload.payment_url) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(invoicePayload.payment_url);
+          alert("Payment link copied to clipboard. Open it to complete donation.");
+        } else {
+          window.prompt("Open this link to donate:", invoicePayload.payment_url);
+        }
+      } else {
+        const fallbackBot = `https://t.me/${BOT_USERNAME}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(fallbackBot);
+          alert(`Couldn't open invoice. Bot link copied: ${fallbackBot}`);
+        } else {
+          window.prompt("Open this in Telegram to support:", fallbackBot);
+        }
+      }
+    } catch (e) {
+      console.error("donateViaInvoice error:", e);
+      alert("Couldn't initiate donation UI. Please try contacting the bot directly.");
+    }
+  }
+
+  // UI render
   return (
     <div style={styles.page}>
       <Confetti active={allCompleted} />
@@ -407,7 +478,7 @@ export default function App() {
             <div style={styles.logo} aria-hidden>MC</div>
             <div>
               <div style={styles.title}>MicroCoach — 5-min workouts</div>
-              <div style={styles.subtitle}>Sequential timer • Pause & resume</div>
+              <div style={styles.subtitle}>Sequential timer • Donate & share</div>
             </div>
           </div>
 
@@ -497,10 +568,10 @@ export default function App() {
 
                 <button aria-label="Stop workout" onClick={stopRoutine} style={styles.ghostBtn} disabled={!running && !paused}>Stop</button>
 
-                <button aria-label="Share app" onClick={shareApp} style={styles.ghostBtn} disabled={running || paused}>Share</button>
+                <button aria-label="Share app" onClick={() => shareApp()} style={styles.ghostBtn} disabled={running || paused}>Share</button>
 
                 {allCompleted && (
-                  <button aria-label="Support with Stars" onClick={donate} style={{ ...styles.primaryBtn, background: "linear-gradient(90deg,#f59e0b,#7c3aed)" }}>
+                  <button aria-label="Support / Donate" onClick={donate} style={{ ...styles.primaryBtn, background: "linear-gradient(90deg,#f59e0b,#7c3aed)" }}>
                     Support • Donate
                   </button>
                 )}
@@ -513,7 +584,7 @@ export default function App() {
   );
 }
 
-// ---------- styles ----------
+// styles (unchanged look & feel)
 const styles = {
   page: { minHeight: "100vh", background: "#071022", color: "#e6eef3", padding: 12, fontFamily: "Inter, system-ui, Arial" },
   confettiWrap: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 },
