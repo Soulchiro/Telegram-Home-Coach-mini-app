@@ -51,7 +51,7 @@ function PlaceholderSVG({ label = "" }) {
 // Exercise row component
 function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
   const slug = EXERCISE_SLUGS[step.name] || step.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const imgSrc = `/images/${slug}.png`;
+  const imgSrc = `public/images/${slug}.png`;
   const IconComp = exerciseIcons && exerciseIcons[slug];
   const [imgError, setImgError] = useState(false);
 
