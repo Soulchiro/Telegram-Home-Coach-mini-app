@@ -333,7 +333,7 @@ async function startTelegramBotSafely() {
       bot.start(async (ctx) => {
         try {
           const publicUrl = (process.env.PUBLIC_URL || "").replace(/\/$/, "") || "";
-          const webAppUrl = publicUrl || "https://your-app-url.example";
+          const webAppUrl = publicUrl || "https://telegram-home-coach-mini-app-1.onrender.com";
           await ctx.reply("Open MicroCoach:", {
             reply_markup: { inline_keyboard: [[{ text: "Open MicroCoach", web_app: { url: webAppUrl } }]] }
           });
