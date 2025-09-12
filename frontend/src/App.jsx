@@ -1,27 +1,46 @@
 // frontend/src/App.jsx
 import React, { useEffect, useRef, useState } from "react";
-import exerciseIcons from "./icons/exerciseIcons"; // optional - keep file if you added icons
+import exerciseIcons from "./icons/exerciseIcons"; // optional - keep if you added icons
 
 /*
-  MicroCoach App.jsx - integrated share & donate (TON + invoice fallback)
-  - Drop this in frontend/src/App.jsx
-  - Expects server endpoints:
-      POST /api/generate-workout       (already exists)
-      POST /api/create-invoice        (already exists)
-      POST /api/verify-ton-payment    (optional but recommended for TON)
-  - Env (optional, set in build env):
-      REACT_APP_BOT_USERNAME (without @)  -> used as fallback share link
+  MicroCoach App.jsx - improved
+  - Fixes images path (use /images/{slug}.png from frontend/public/images)
+  - Adds minimum loading delay
+  - Central THEME object
+  - Share & Donate improved
+  - Highlights playlist change area (see PLAYLISTS constant)
 */
 
-const BOT_USERNAME = process.env.REACT_APP_BOT_USERNAME || "YourWorkoutBot_Bot"; // replace in env or here
-const TON_RECEIVER = process.env.REACT_APP_TON_RECEIVER || "EQAhk1...REPLACE_WITH_YOUR_WALLET"; // replace with your TON wallet
+const BOT_USERNAME = process.env.REACT_APP_BOT_USERNAME || "YourWorkoutBot_Bot";
+const TON_RECEIVER = process.env.REACT_APP_TON_RECEIVER || "EQAhk1...REPLACE_WITH_YOUR_WALLET";
 
-// Simplified slug mapping (extend as needed)
+// ---------- THEME (change app colors here) ----------
+const THEME = {
+  bg: "#071022",
+  cardGradA: "#071827",
+  cardGradB: "#04121a",
+  accentA: "#0ea5e9",
+  accentB: "#7c3aed",
+  success: "#22c55e",
+  text: "#e6eef3",
+  dim: "#94a3b8",
+  cardBg: "#061725",
+  thumbBg: "#051421",
+};
+
+// ---------- exercise slug mapping ----------
 const EXERCISE_SLUGS = {
-  "Bodyweight squats": "bodyweight-squats",
-  "Push-ups (knees if needed)": "push-ups",
+  "Shoulder shrugs": "shouldershrugs",
+  "Standing side bend": "standingsidebend", 
+  "Deep breaths": "deepbreaths", 
+  "Seated cat-cow": "seatedcatcow", 
+  "Neck rolls": "armcircles",
+  "Child's pose": "childpose", 
+  "Bodyweight squats": "armcircles",
+  "Push-ups (knees if needed)": "armcircles",
   "Jumping jacks": "jumping-jacks",
   "Plank": "plank",
+  "Wrist circles": "wristcircles", 
   "High knees": "high-knees",
   "Mountain climbers": "mountain-climbers",
   "Lunges (alternating)": "lunges",
@@ -29,17 +48,16 @@ const EXERCISE_SLUGS = {
   "Bicycle crunches (slow)": "bicycle-crunches",
   "Glute bridge": "glute-bridge",
   "Hamstring stretch": "hamstring-stretch",
-  "Child's pose": "childs-pose",
   "World's greatest stretch": "worlds-greatest-stretch",
-  // add any other exercise name -> slug mappings you used
+  // add more name -> slug entries if your server returns different names
 };
 
 // placeholder inline SVG
 function PlaceholderSVG({ label = "" }) {
   return (
     <svg width="84" height="64" viewBox="0 0 84 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={label}>
-      <rect width="84" height="64" rx="8" fill="#051421" />
-      <g transform="translate(10,8)" fill="#1f6d85">
+      <rect width="84" height="64" rx="8" fill={THEME.thumbBg} />
+      <g transform="translate(10,8)" fill={THEME.accentA}>
         <rect width="64" height="6" rx="3" />
         <rect y="14" width="44" height="6" rx="3" />
         <rect y="28" width="52" height="6" rx="3" />
@@ -51,7 +69,8 @@ function PlaceholderSVG({ label = "" }) {
 // Exercise row component
 function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
   const slug = EXERCISE_SLUGS[step.name] || step.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const imgSrc = `public/images/${slug}.png`;
+  // --- FIXED IMAGE PATH: use /images/... (served from frontend/public/images) ---
+  const imgSrc = `/images/${slug}.png`;
   const IconComp = exerciseIcons && exerciseIcons[slug];
   const [imgError, setImgError] = useState(false);
 
@@ -69,7 +88,12 @@ function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
     <div style={{ ...styles.exerciseCard, opacity: completed ? 0.9 : 1 }} aria-live={isActive ? "polite" : "off"}>
       <div style={styles.thumb}>
         {!imgError ? (
-          <img src={imgSrc} alt={step.name} style={styles.img} onError={() => setImgError(true)} />
+          <img
+            src={imgSrc}
+            alt={step.name}
+            style={styles.img}
+            onError={() => setImgError(true)}
+          />
         ) : IconComp ? (
           <IconComp width={84} height={64} />
         ) : (
@@ -80,7 +104,7 @@ function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
       <div style={styles.stepInfo}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <div style={styles.stepName}>{step.name}</div>
-          <div style={{ fontSize: 12, color: completed ? "#22c55e" : "#9fb3c4", fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: completed ? THEME.success : THEME.dim, fontWeight: 700 }}>
             {completed ? "Done ✓" : (isActive ? `${remainingForActive}s` : `${step.duration_or_reps}s`)}
           </div>
         </div>
@@ -93,7 +117,7 @@ function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
             style={{
               height: "100%",
               width: `${percent}%`,
-              background: completed ? "#22c55e" : (isActive ? "linear-gradient(90deg,#0ea5e9,#7c3aed)" : "#123b46"),
+              background: completed ? THEME.success : (isActive ? `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})` : "#123b46"),
               transition: isActive ? "width 0.9s linear" : "width 0.3s ease"
             }}
           />
@@ -103,7 +127,7 @@ function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
   );
 }
 
-// Simple confetti DOM
+// little Confetti DOM when complete
 function Confetti({ active }) {
   if (!active) return null;
   const pieces = Array.from({ length: 24 });
@@ -114,7 +138,7 @@ function Confetti({ active }) {
         const delay = Math.random() * 0.6;
         const size = 6 + Math.round(Math.random() * 10);
         const duration = 1200 + Math.round(Math.random() * 1400);
-        const bg = ["#0ea5e9", "#7c3aed", "#22c55e", "#f59e0b"][Math.floor(Math.random() * 4)];
+        const bg = [THEME.accentA, THEME.accentB, THEME.success, "#f59e0b"][Math.floor(Math.random() * 4)];
         return (
           <div
             key={i}
@@ -151,6 +175,28 @@ function yesterdayISO() { const d = new Date(); d.setDate(d.getDate() - 1); retu
 function loadStreak() { try { const raw = localStorage.getItem(STREAK_KEY); if (!raw) return { count: 0, last: null }; return JSON.parse(raw); } catch { return { count: 0, last: null }; } }
 function saveStreak(obj) { try { localStorage.setItem(STREAK_KEY, JSON.stringify(obj)); } catch {} }
 
+// ---------- PLAYLISTS (change these to your real playlist links) ----------
+// Replace the arrays below with your own playlists/URLs. Each entry should be { title, query, hint }.
+// Example: PLAYLISTS.electronic = [{ title: "Warmup Mix", query: "https://open.spotify.com/...", hint: "..." }, ...]
+const PLAYLISTS = {
+  electronic: [
+    { title: "Electronic Short Mix", query: "https://open.spotify.com/playlist/7H0rGB63hUimokOWAFPi9S?si=_LYQ63ghRuCYyORuBICG0Q", hint: "Electronic energy" }
+  ],
+  lofi: [
+    { title: "Lofi 5-min", query: "https://open.spotify.com/playlist/71hJFZoqd7Ow3xZq3S5PyM?si=JdMDZsAaRqylB28bFNQbXg", hint: "Chill beats" }
+  ],
+  hiphop: [
+    { title: "Hip-Hop Pump", query: "https://open.spotify.com/playlist/5A5cLkWcIc5BifNOa4UZTl?si=8PzFHuNOSe6pwNovba5Rng", hint: "Hip-Hop energy" }
+  ],
+  rock: [
+    { title: "Rock Short", query: "https://open.spotify.com/playlist/4BxyA2GrkSiKWwKEqVFh6r?si=SI3W8vj8QtSfVPNv0wBrMA", hint: "Rock pump" }
+  ],
+  pop: [
+    { title: "Pop Hits", query: "https://open.spotify.com/playlist/6v84skfMiLBEgUOEHB6LNS?si=fST-cgxETIiEFQDK_Wndaw", hint: "Pop vibes" }
+  ]
+};
+// ------------------- end playlist section -------------------
+
 export default function App() {
   const [intensity, setIntensity] = useState("regular");
   const [playlist, setPlaylist] = useState("electronic");
@@ -174,7 +220,6 @@ export default function App() {
   useEffect(() => { segmentsRef.current = segments; }, [segments]);
   useEffect(() => { activeIndexRef.current = activeIndex; }, [activeIndex]);
   useEffect(() => { remainingRef.current = remainingForActive; }, [remainingForActive]);
-
   useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
 
   // streak state
@@ -185,18 +230,25 @@ export default function App() {
   // completed flag
   const allCompleted = segments.length > 0 && segments.every(s => s._completed);
 
-  // Generate routine
+  // Generate routine (with minimum fake delay so UI shows "thinking")
   async function generate() {
     setLoading(true);
     setError(null);
     setPlan(null);
     setSegments([]);
+    // ensure spinner visible for at least MIN_DELAY ms
+    const MIN_DELAY = 800;
+    const start = Date.now();
     try {
-      const res = await fetch("/api/generate-workout", {
+      const resPromise = fetch("/api/generate-workout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ level: intensity, duration: 5, playlist })
       });
+      const res = await resPromise;
+      // await minimum delay
+      const waited = Date.now() - start;
+      if (waited < MIN_DELAY) await new Promise(r => setTimeout(r, MIN_DELAY - waited));
       if (!res.ok) throw new Error("network");
       const data = await res.json();
       const main = Array.isArray(data.main) ? data.main.map(s => ({ ...s, _completed: false })) : [];
@@ -341,22 +393,38 @@ export default function App() {
 
   // ---- SHARE / DONATE FLOW ----
 
-  // Share: prefer Telegram deep link, then navigator.share, telegram.me share, clipboard
+  // Share: prefer Telegram WebApp link, then navigator.share, else telegram.me or clipboard
   async function shareApp({ user } = {}) {
     const uid = (user && (user.id || user.user_id)) ? (user.id || user.user_id) : "default";
     const appUrl = `https://t.me/${BOT_USERNAME}?start=ref_${encodeURIComponent(uid)}`;
 
-    // Telegram WebApp openLink
-    if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openLink === "function") {
-      try { window.Telegram.WebApp.openLink(appUrl); return; } catch (e) { console.warn("Telegram openLink failed", e); }
+    // Telegram WebApp openLink or shareLink
+    try {
+      if (window.Telegram && window.Telegram.WebApp) {
+        if (typeof window.Telegram.WebApp.shareLink === "function") {
+          window.Telegram.WebApp.shareLink(appUrl, "Quick 5-min workouts — try MicroCoach!");
+          return;
+        }
+        if (typeof window.Telegram.WebApp.openLink === "function") {
+          window.Telegram.WebApp.openLink(appUrl);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Telegram share failed", e);
     }
 
-    // Native share
-    if (navigator.share) {
-      try { await navigator.share({ title: "MicroCoach — 5-min workouts", text: "Quick at-home workout — try MicroCoach!", url: appUrl }); return; } catch (e) { console.warn("navigator.share failed", e); }
+    // Native web share
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "MicroCoach", text: "Quick 5-min workouts", url: appUrl });
+        return;
+      }
+    } catch (e) {
+      console.warn("navigator.share failed", e);
     }
 
-    // telegram.me share
+    // fallback to telegram.me share
     try {
       const telegramShareUrl = `https://telegram.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent("Try MicroCoach — quick 5-min home workouts!")}`;
       window.open(telegramShareUrl, "_blank", "noopener,noreferrer");
@@ -372,19 +440,21 @@ export default function App() {
         alert("Link copied to clipboard!");
         return;
       }
-    } catch (e) { console.warn("clipboard failed", e); }
+    } catch (e) {
+      console.warn("clipboard failed", e);
+    }
 
     window.prompt("Copy this link:", appUrl);
   }
 
-  // Donate: try TON wallet if available, fallback to invoice
+  // Donate flow: try TON first, then server invoice
   async function donate() {
     const inTelegram = !!(window.Telegram && window.Telegram.WebApp);
     const hasTonWallet = !!(window.ton && typeof window.ton.sendTransaction === "function");
 
-    // Amount configuration (modify as you like)
-    const AMOUNT_TON = 1.0; // 1 TON as example
-    const AMOUNT_NANOTON = Math.round(AMOUNT_TON * 1_000_000_000); // nanoTON integer
+    // Amount configuration
+    const AMOUNT_TON = 1.0; // example
+    const AMOUNT_NANOTON = Math.round(AMOUNT_TON * 1_000_000_000);
 
     if (inTelegram && hasTonWallet) {
       try {
@@ -392,90 +462,69 @@ export default function App() {
         const result = await window.ton.sendTransaction(tx);
         const txHash = typeof result === "string" ? result : (result && (result.transactionHash || result.txHash || result.hash));
         if (txHash) {
-          // notify server to verify the on-chain tx (implement /api/verify-ton-payment)
+          // try verify with server (optional)
           try {
-            const resp = await fetch("/api/verify-ton-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ txHash, to: TON_RECEIVER, amountNano: String(AMOUNT_NANOTON) })
-            });
-            const j = await resp.json();
-            if (resp.ok && j && j.verified) {
-              alert("Thank you! Payment verified. 🎉");
-              return;
-            } else {
-              alert("Payment sent. Verification pending — thank you!");
-              return;
-            }
+            await fetch("/api/verify-ton-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ txHash, to: TON_RECEIVER, amountNano: String(AMOUNT_NANOTON) }) });
+            alert("Thank you! Payment sent.");
+            return;
           } catch (err) {
-            console.warn("verify-ton-payment failed:", err);
+            console.warn("verify-ton failed", err);
             alert("Payment sent — verification pending. Thank you!");
             return;
           }
-        } else {
-          console.warn("TON wallet returned no txHash, falling back.");
-          await donateViaInvoice();
-          return;
         }
       } catch (e) {
-        console.error("TON payment failed:", e);
-        await donateViaInvoice();
-        return;
+        console.warn("TON payment error", e);
       }
     }
 
-    // fallback
-    await donateViaInvoice();
-  }
-
-  // Fallback invoice using existing server endpoint
-  async function donateViaInvoice() {
+    // fallback to invoice endpoint (server should return invoice payload or payment_url)
     try {
-      const res = await fetch("/api/create-invoice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount_label: "Support", currency_hint: "USD" }) });
-      if (!res.ok) throw new Error("invoice request failed");
-      const invoicePayload = await res.json();
+      const resp = await fetch("/api/create-invoice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount_label: "Support", currency_hint: "USD" }) });
+      if (!resp.ok) throw new Error("invoice_failed");
+      const invoicePayload = await resp.json();
 
-      // Try to open inside Telegram WebApp if available
-      if (window.Telegram && window.Telegram.WebApp) {
-        if (typeof window.Telegram.WebApp.openInvoice === "function") {
-          try { window.Telegram.WebApp.openInvoice(invoicePayload); return; } catch (err) { console.warn("openInvoice failed", err); }
-        }
-        if (typeof invoicePayload === "string" && typeof window.Telegram.WebApp.openLink === "function") {
-          window.Telegram.WebApp.openLink(invoicePayload);
+      // If Telegram WebApp supports openInvoice
+      if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openInvoice === "function") {
+        try {
+          window.Telegram.WebApp.openInvoice(invoicePayload);
           return;
+        } catch (e) {
+          console.warn("openInvoice failed", e);
         }
       }
 
+      // fallback: open payment_url or copy link
       if (invoicePayload && invoicePayload.payment_url) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(invoicePayload.payment_url);
-          alert("Payment link copied to clipboard. Open it to complete donation.");
-        } else {
-          window.prompt("Open this link to donate:", invoicePayload.payment_url);
-        }
-      } else {
+        window.open(invoicePayload.payment_url, "_blank", "noopener,noreferrer");
+        return;
+      }
+    } catch (e) {
+      console.error("donate fallback failed", e);
+      // final fallback: copy bot link
+      try {
         const fallbackBot = `https://t.me/${BOT_USERNAME}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(fallbackBot);
           alert(`Couldn't open invoice. Bot link copied: ${fallbackBot}`);
+          return;
         } else {
-          window.prompt("Open this in Telegram to support:", fallbackBot);
+          window.prompt("Open this in Telegram to support:", `https://t.me/${BOT_USERNAME}`);
         }
+      } catch (ee) {
+        console.error(ee);
       }
-    } catch (e) {
-      console.error("donateViaInvoice error:", e);
-      alert("Couldn't initiate donation UI. Please try contacting the bot directly.");
     }
   }
 
   // UI render
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, background: THEME.bg, color: THEME.text }}>
       <Confetti active={allCompleted} />
       <div style={styles.container}>
         <header style={styles.header}>
           <div style={styles.brand}>
-            <div style={styles.logo} aria-hidden>MC</div>
+            <div style={{ ...styles.logo, background: `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})` }} aria-hidden>MC</div>
             <div>
               <div style={styles.title}>MicroCoach — 5-min workouts</div>
               <div style={styles.subtitle}>Sequential timer • Donate & share</div>
@@ -483,9 +532,9 @@ export default function App() {
           </div>
 
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 12, color: "#9be7ff", fontWeight: 700 }}>🔥 Streak</div>
-            <div style={{ fontSize: 16, color: "#e6eef3", fontWeight: 800 }}>{streak} day{streak === 1 ? "" : "s"}</div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>{lastDate ? `last: ${lastDate}` : "not started"}</div>
+            <div style={{ fontSize: 12, color: THEME.accentA, fontWeight: 700 }}>🔥 Streak</div>
+            <div style={{ fontSize: 16, color: THEME.text, fontWeight: 800 }}>{streak} day{streak === 1 ? "" : "s"}</div>
+            <div style={{ fontSize: 11, color: THEME.dim }}>{lastDate ? `last: ${lastDate}` : "not started"}</div>
           </div>
         </header>
 
@@ -505,11 +554,11 @@ export default function App() {
             <label style={styles.label}>
               Playlist
               <select aria-label="Playlist" value={playlist} onChange={e => setPlaylist(e.target.value)} style={styles.select}>
-                <option value="electronic">Electronic</option>
-                <option value="lofi">Lo-Fi</option>
-                <option value="hiphop">Hip-Hop</option>
-                <option value="rock">Rock</option>
-                <option value="pop">Pop</option>
+                <option value="electronic">Techno</option>
+                <option value="lofi">Relaxed</option>
+                <option value="hiphop">Dark Electro</option>
+                <option value="rock">Hard Rock</option>
+                <option value="pop">80s Classic</option>
               </select>
             </label>
           </div>
@@ -523,7 +572,7 @@ export default function App() {
               Reset
             </button>
 
-            <div style={{ marginLeft: "auto", alignSelf: "center", color: "#94a3b8", fontSize: 13 }}>
+            <div style={{ marginLeft: "auto", alignSelf: "center", color: THEME.dim, fontSize: 13 }}>
               {running ? `In progress — ${formatTime(computeTotalRemaining())}` : paused ? `Paused — ${formatTime(computeTotalRemaining())}` : `Ready • 5 minutes`}
             </div>
           </div>
@@ -545,7 +594,10 @@ export default function App() {
 
                 <div style={{ display: "flex", gap: 8 }}>
                   <button aria-label="Save workout" onClick={save} style={styles.smallBtn} disabled={running || paused}>Save</button>
-                  <a aria-label="Open playlist" href={plan.playlist && plan.playlist[0]?.query ? plan.playlist[0].query : "#"} target="_blank" rel="noreferrer" style={styles.linkBtn}>Open playlist</a>
+
+                  {/* ---------------- PLAYLIST LINKS: update your playlists in PLAYLISTS constant above --------------- */}
+                  <a aria-label="Open playlist" href={(PLAYLISTS[playlist] && PLAYLISTS[playlist][0] && PLAYLISTS[playlist][0].query) ? PLAYLISTS[playlist][0].query : "#"} target="_blank" rel="noreferrer" style={styles.linkBtn}>Open playlist</a>
+                  {/* ----------------------------------------------------------------------------------------------- */}
                 </div>
               </div>
 
@@ -571,7 +623,7 @@ export default function App() {
                 <button aria-label="Share app" onClick={() => shareApp()} style={styles.ghostBtn} disabled={running || paused}>Share</button>
 
                 {allCompleted && (
-                  <button aria-label="Support / Donate" onClick={donate} style={{ ...styles.primaryBtn, background: "linear-gradient(90deg,#f59e0b,#7c3aed)" }}>
+                  <button aria-label="Support / Donate" onClick={donate} style={{ ...styles.primaryBtn, background: `linear-gradient(90deg, ${THEME.success}, ${THEME.accentB})` }}>
                     Support • Donate
                   </button>
                 )}
@@ -584,36 +636,36 @@ export default function App() {
   );
 }
 
-// styles (unchanged look & feel)
+// ---------- styles ----------
 const styles = {
-  page: { minHeight: "100vh", background: "#071022", color: "#e6eef3", padding: 12, fontFamily: "Inter, system-ui, Arial" },
+  page: { minHeight: "100vh", padding: 12, fontFamily: "Inter, system-ui, Arial" },
   confettiWrap: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 },
   container: { maxWidth: 900, margin: "8px auto", position: "relative" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   brand: { display: "flex", gap: 12, alignItems: "center" },
-  logo: { width: 48, height: 48, borderRadius: 10, background: "linear-gradient(90deg,#0ea5e9,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", color: "#021826", fontWeight: 800 },
+  logo: { width: 48, height: 48, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#021826", fontWeight: 800 },
   title: { fontSize: 20, fontWeight: 700 },
-  subtitle: { fontSize: 12, color: "#94a3b8" },
-  controls: { background: "linear-gradient(180deg,#071827,#04121a)", padding: 14, borderRadius: 12, border: "1px solid rgba(255,255,255,0.02)" },
+  subtitle: { fontSize: 12, color: THEME.dim },
+  controls: { background: `linear-gradient(180deg, ${THEME.cardGradA}, ${THEME.cardGradB})`, padding: 14, borderRadius: 12, border: "1px solid rgba(255,255,255,0.02)" },
   controlsRow: { display: "flex", gap: 10, flexWrap: "wrap" },
   label: { display: "flex", flexDirection: "column", minWidth: 140, fontSize: 13, color: "#cfefff" },
-  select: { marginTop: 6, padding: 10, borderRadius: 10, background: "#061724", border: "1px solid rgba(255,255,255,0.03)", color: "#e6eef3" },
+  select: { marginTop: 6, padding: 10, borderRadius: 10, background: THEME.thumbBg, border: "1px solid rgba(255,255,255,0.03)", color: THEME.text },
   buttonGhost: { padding: "10px 12px", borderRadius: 10, background: "transparent", color: "#9fb3c4", border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" },
-  buttonPrimary: { padding: "10px 16px", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(90deg,#0ea5e9,#7c3aed)", color: "#021826", fontWeight: 800 },
-  primaryBtn: { padding: "10px 16px", borderRadius: 12, border: "none", cursor: "pointer", background: "#22c55e", color: "#021826", fontWeight: 800 },
+  buttonPrimary: { padding: "10px 16px", borderRadius: 12, border: "none", cursor: "pointer", background: `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})`, color: "#021826", fontWeight: 800 },
+  primaryBtn: { padding: "10px 16px", borderRadius: 12, border: "none", cursor: "pointer", background: THEME.success, color: "#021826", fontWeight: 800 },
   preview: { marginTop: 12 },
   empty: { padding: 16, borderRadius: 12, background: "#061426", color: "#9fb3c4" },
-  planCard: { padding: 14, borderRadius: 12, background: "linear-gradient(180deg,#071827,#04121a)", border: "1px solid rgba(255,255,255,0.03)" },
+  planCard: { padding: 14, borderRadius: 12, background: `linear-gradient(180deg, ${THEME.cardGradA}, ${THEME.cardGradB})`, border: "1px solid rgba(255,255,255,0.03)" },
   planHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  planTitle: { fontSize: 18, fontWeight: 800, color: "#e6eef3" },
-  planSubtitle: { color: "#94a3b8", fontSize: 13 },
+  planTitle: { fontSize: 18, fontWeight: 800, color: THEME.text },
+  planSubtitle: { color: THEME.dim, fontSize: 13 },
   steps: { marginTop: 12 },
   groupTitle: { fontSize: 13, color: "#9fb3c4", marginBottom: 8 },
-  exerciseCard: { display: "flex", gap: 12, alignItems: "center", padding: 10, borderRadius: 10, background: "#061725", marginBottom: 8, border: "1px solid rgba(255,255,255,0.02)" },
-  thumb: { width: 84, height: 64, flex: "0 0 84px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, overflow: "hidden" },
+  exerciseCard: { display: "flex", gap: 12, alignItems: "center", padding: 10, borderRadius: 10, background: THEME.cardBg, marginBottom: 8, border: "1px solid rgba(255,255,255,0.02)" },
+  thumb: { width: 84, height: 64, flex: "0 0 84px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, overflow: "hidden", background: THEME.thumbBg },
   img: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
   stepInfo: { flex: 1 },
-  stepName: { fontWeight: 700, color: "#e6eef3" },
+  stepName: { fontWeight: 700, color: THEME.text },
   stepMeta: { color: "#9fb3c4", fontSize: 13 },
   smallBtn: { background: "#0f1724", color: "#9be7ff", padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" },
   linkBtn: { color: "#9be7ff", background: "transparent", border: "1px solid rgba(255,255,255,0.03)", padding: "6px 8px", borderRadius: 8, textDecoration: "none" },
