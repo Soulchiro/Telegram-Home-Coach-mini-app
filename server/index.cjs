@@ -311,7 +311,7 @@ async function startBotSafely() {
 
     bot.start((ctx) => {
       const publicUrl = (process.env.PUBLIC_URL || "").replace(/\/$/, "") || "";
-      const webAppUrl = publicUrl || "https://your-app.example";
+      const webAppUrl = publicUrl || "https://telegram-home-coach-mini-app-1.onrender.com";
       ctx.reply("Welcome to MicroCoach! Open the app:", {
         reply_markup: { inline_keyboard: [[{ text: "Open MicroCoach", web_app: { url: webAppUrl } }]] }
       });
