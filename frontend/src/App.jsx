@@ -593,19 +593,13 @@ export default function App() {
                   <div style={styles.planSubtitle}>{plan.intensity_label?.toUpperCase() || intensity}</div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-  <button aria-label="Save workout" onClick={save} style={styles.smallBtn} disabled={running || paused}>
-    Save
-  </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button aria-label="Save workout" onClick={save} style={styles.smallBtn} disabled={running || paused}>Save</button>
 
-  <a aria-label="Open playlist" 
-     href={PLAYLISTS[playlist]?.[0]?.query ?? "#"} 
-     target="_blank" 
-     rel="noreferrer" 
-     style={styles.linkBtn}>
-    Open playlist
-  </a>
-</div>
+                  {/* ---------------- PLAYLIST LINKS: update your playlists in PLAYLISTS constant above --------------- */}
+                  <a aria-label="Open playlist" href={(PLAYLISTS[playlist] && PLAYLISTS[playlist][0] && PLAYLISTS[playlist][0].query) ? PLAYLISTS[playlist][0].query : "#"} target="_blank" rel="noreferrer" style={styles.linkBtn}>Open playlist</a>
+                  {/* ----------------------------------------------------------------------------------------------- */}
+                </div>
               </div>
 
               <div style={styles.steps}>
@@ -675,7 +669,7 @@ const styles = {
   stepInfo: { flex: 1 },
   stepName: { fontWeight: 700, color: THEME.text },
   stepMeta: { color: "#9fb3c4", fontSize: 13 },
-  smallBtn: { background: "#0f1724", color: "#9be7ff", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer", display: "flex" },
-  linkBtn: { color: "#9be7ff", background: "transparent", border: "1px solid rgba(255,255,255,0.03)", padding: "6px 8px", borderRadius: 8, textDecoration: "none", display: "flex" },
+  smallBtn: { background: "#0f1724", color: "#9be7ff", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" },
+  linkBtn: { color: "#9be7ff", background: "transparent", border: "1px solid rgba(255,255,255,0.03)", padding: "6px 8px", borderRadius: 8, textDecoration: "none" },
   err: { marginTop: 8, color: "#ff7b7b" }
 };
