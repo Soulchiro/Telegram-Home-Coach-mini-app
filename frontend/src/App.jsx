@@ -519,19 +519,6 @@ export default function App() {
 
   // UI render
   return (
-    <div
-    style={{
-      background: THEME.bg,
-      color: THEME.text,
-      width: "100%",
-      maxWidth: "420px",   // fixed width
-      margin: "0 auto",    // center horizontally
-      minHeight: "100vh",  // full height
-      display: "flex",
-      flexDirection: "column",
-    }}
-  >
-    {
     <div style={{ ...styles.page, background: THEME.bg, color: THEME.text }}>
       <Confetti active={allCompleted} />
       <div style={styles.container}>
@@ -646,8 +633,7 @@ export default function App() {
         </section>
       </div>
     </div>
-    }
-    </div>
+    
   );
 }
 
