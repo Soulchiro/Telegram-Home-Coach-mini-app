@@ -11,8 +11,8 @@ import exerciseIcons from "./icons/exerciseIcons"; // optional - keep if you add
   - Highlights playlist change area (see PLAYLISTS constant)
 */
 
-const BOT_USERNAME = process.env.REACT_APP_BOT_USERNAME || "YourWorkoutBot_Bot";
-const TON_RECEIVER = process.env.REACT_APP_TON_RECEIVER || "EQAhk1...REPLACE_WITH_YOUR_WALLET";
+const BOT_USERNAME = process.env.REACT_APP_BOT_USERNAME || "PocketedCoach_bot";
+const TON_RECEIVER = process.env.REACT_APP_TON_RECEIVER || "UQCkO9yhVbY_d0eTqyTyh71zrDtb3DpLIzKxHAZt1IZrqKha";
 
 // ---------- THEME (change app colors here) ----------
 const THEME = {
@@ -25,7 +25,7 @@ const THEME = {
   text: "#e6eef3",
   dim: "#94a3b8",
   cardBg: "#061725",
-  thumbBg: "#051421"
+  thumbBg: "#051421",
 };
 
 // ---------- exercise slug mapping ----------
