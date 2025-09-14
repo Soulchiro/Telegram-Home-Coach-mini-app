@@ -396,7 +396,7 @@ export default function App() {
   // Share: prefer Telegram WebApp link, then navigator.share, else telegram.me or clipboard
   async function shareApp({ user } = {}) {
     const uid = (user && (user.id || user.user_id)) ? (user.id || user.user_id) : "default";
-    const appUrl = `https://t.me/${PocketedCoach_bot}?start=ref_${encodeURIComponent(uid)}`;
+    const appUrl = `https://t.me/${BOT_USERNAME}?start=ref_${encodeURIComponent(uid)}`;
 
     // Telegram WebApp openLink or shareLink
     try {
@@ -464,7 +464,7 @@ export default function App() {
         if (txHash) {
           // try verify with server (optional)
           try {
-            await fetch("/api/verify-ton-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ txHash, to: UQCkO9yhVbY_d0eTqyTyh71zrDtb3DpLIzKxHAZt1IZrqKha, amountNano: String(AMOUNT_NANOTON) }) });
+            await fetch("/api/verify-ton-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ txHash, to: TON_RECEIVER, amountNano: String(AMOUNT_NANOTON) }) });
             alert("Thank you! Payment sent.");
             return;
           } catch (err) {
