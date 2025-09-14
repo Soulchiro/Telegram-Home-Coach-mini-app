@@ -1,0 +1,124 @@
+{
+  "workouts": [
+    {
+      "id": 1757874999305,
+      "created_at": "2025-09-14T18:36:39.305Z",
+      "payload": {
+        "total_duration_minutes": 5,
+        "intensity_label": "regular",
+        "main": [
+          {
+            "name": "Wall sits",
+            "slug": "wall-sits",
+            "unit": "time",
+            "duration_or_reps": 57,
+            "notes": ""
+          },
+          {
+            "name": "Supermans",
+            "slug": "supermans",
+            "unit": "time",
+            "duration_or_reps": 45,
+            "notes": ""
+          },
+          {
+            "name": "Deadbug core",
+            "slug": "deadbug-core",
+            "unit": "time",
+            "duration_or_reps": 45,
+            "notes": ""
+          },
+          {
+            "name": "Step ups (low)",
+            "slug": "step-ups-low",
+            "unit": "time",
+            "duration_or_reps": 53,
+            "notes": ""
+          },
+          {
+            "name": "Calf raises",
+            "slug": "calf-raises",
+            "unit": "time",
+            "duration_or_reps": 47,
+            "notes": ""
+          },
+          {
+            "name": "Incline push-ups",
+            "slug": "incline-push-ups",
+            "unit": "time",
+            "duration_or_reps": 53,
+            "notes": ""
+          }
+        ],
+        "cooldown": [],
+        "playlist": [
+          {
+            "title": "regular mix",
+            "hint": "regular playlist",
+            "query": "https://www.youtube.com/results?search_query=regular%20workout%20mix%205%20minutes"
+          }
+        ]
+      }
+    },
+    {
+      "id": 1757875002999,
+      "created_at": "2025-09-14T18:36:42.999Z",
+      "payload": {
+        "total_duration_minutes": 5,
+        "intensity_label": "regular",
+        "main": [
+          {
+            "name": "Wall sits",
+            "slug": "wall-sits",
+            "unit": "time",
+            "duration_or_reps": 57,
+            "notes": ""
+          },
+          {
+            "name": "Supermans",
+            "slug": "supermans",
+            "unit": "time",
+            "duration_or_reps": 45,
+            "notes": ""
+          },
+          {
+            "name": "Deadbug core",
+            "slug": "deadbug-core",
+            "unit": "time",
+            "duration_or_reps": 45,
+            "notes": ""
+          },
+          {
+            "name": "Step ups (low)",
+            "slug": "step-ups-low",
+            "unit": "time",
+            "duration_or_reps": 53,
+            "notes": ""
+          },
+          {
+            "name": "Calf raises",
+            "slug": "calf-raises",
+            "unit": "time",
+            "duration_or_reps": 47,
+            "notes": ""
+          },
+          {
+            "name": "Incline push-ups",
+            "slug": "incline-push-ups",
+            "unit": "time",
+            "duration_or_reps": 53,
+            "notes": ""
+          }
+        ],
+        "cooldown": [],
+        "playlist": [
+          {
+            "title": "regular mix",
+            "hint": "regular playlist",
+            "query": "https://www.youtube.com/results?search_query=regular%20workout%20mix%205%20minutes"
+          }
+        ]
+      }
+    }
+  ]
+}

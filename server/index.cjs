@@ -19,118 +19,124 @@ app.use(express.json());
 const PORT = Number(process.env.PORT || 10000);
 
 // ------------------ POOLS (expanded lists, ~20 each) ------------------
+// Paste this as your POOLS object in server/index.cjs (replaces previous pools)
 const POOLS = {
   chill: [
-    { name: "Neck rolls", base: 25, unit: "time", notes: "gentle" },
-    { name: "Shoulder shrugs", base: 25, unit: "time" },
-    { name: "Ankle circles", base: 20, unit: "time" },
-    { name: "Seated cat-cow", base: 30, unit: "time" },
-    { name: "Child's pose", base: 40, unit: "time" },
-    { name: "Standing side bend", base: 25, unit: "time" },
-    { name: "Wrist circles", base: 20, unit: "time" },
-    { name: "Seated forward fold", base: 30, unit: "time" },
-    { name: "Calf stretch", base: 25, unit: "time" },
-    { name: "Hip circles", base: 25, unit: "time" },
-    { name: "Deep breaths", base: 30, unit: "time" },
-    { name: "Seated spinal twist", base: 30, unit: "time" },
-    { name: "Glute release", base: 25, unit: "time" },
-    { name: "Quadruped cat stretch", base: 25, unit: "time" },
-    { name: "Knee hugs", base: 25, unit: "time" },
-    { name: "Gentle hamstring pedal", base: 25, unit: "time" },
-    { name: "Supine knee rock", base: 25, unit: "time" },
-    { name: "Seated shoulder stretch", base: 25, unit: "time" },
-    { name: "Thoracic rotation", base: 25, unit: "time" },
-    { name: "Child's breathing", base: 30, unit: "time" }
+    { name: "Neck rolls", base: 20, unit: "time", slug: "neck-rolls" },
+    { name: "Shoulder shrugs", base: 20, unit: "time", slug: "shoulder-shrugs" },
+    { name: "Ankle circles", base: 18, unit: "time", slug: "ankle-circles" },
+    { name: "Wrist circles", base: 15, unit: "time", slug: "wrist-circles" },
+    { name: "Seated cat-cow", base: 30, unit: "time", slug: "seated-cat-cow" },
+    { name: "Child's pose", base: 40, unit: "time", slug: "childs-pose" },
+    { name: "Seated forward fold", base: 30, unit: "time", slug: "seated-forward-fold" },
+    { name: "Calf stretch", base: 25, unit: "time", slug: "calf-stretch" },
+    { name: "Hip circles", base: 20, unit: "time", slug: "hip-circles" },
+    { name: "Knee hugs", base: 20, unit: "time", slug: "knee-hugs" },
+    { name: "Supine knee rock", base: 20, unit: "time", slug: "supine-knee-rock" },
+    { name: "Hamstring pedal (gentle)", base: 20, unit: "time", slug: "hamstring-pedal" },
+    { name: "Seated shoulder stretch", base: 18, unit: "time", slug: "seated-shoulder-stretch" },
+    { name: "Thoracic rotation (seated)", base: 22, unit: "time", slug: "thoracic-rotation" },
+    { name: "Ankle dorsiflexor mobility", base: 18, unit: "time", slug: "ankle-dorsiflexor-mobility" },
+    { name: "Breathing focus", base: 30, unit: "time", slug: "breathing-focus" },
+    { name: "Seated side bend", base: 22, unit: "time", slug: "seated-side-bend" },
+    { name: "Gentle torso twist", base: 20, unit: "time", slug: "gentle-torso-twist" },
+    { name: "Neck side stretch", base: 18, unit: "time", slug: "neck-side-stretch" },
+    { name: "Wrist flexor stretch", base: 15, unit: "time", slug: "wrist-flexor-stretch" }
   ],
+
   stretch: [
-    { name: "Hamstring stretch", base: 40, unit: "time" },
-    { name: "Quad stretch", base: 40, unit: "time" },
-    { name: "Torso twist", base: 35, unit: "time" },
-    { name: "Butterfly stretch", base: 40, unit: "time" },
-    { name: "Cobra stretch", base: 35, unit: "time" },
-    { name: "Seated spinal twist", base: 40, unit: "time" },
-    { name: "Standing calf stretch", base: 30, unit: "time" },
-    { name: "Hip opener", base: 40, unit: "time" },
-    { name: "IT band stretch", base: 35, unit: "time" },
-    { name: "Pigeon prep", base: 35, unit: "time" },
-    { name: "Glute stretch", base: 30, unit: "time" },
-    { name: "Adductor stretch", base: 35, unit: "time" },
-    { name: "Chest opener", base: 30, unit: "time" },
-    { name: "Triceps stretch", base: 30, unit: "time" },
-    { name: "Neck side stretch", base: 25, unit: "time" },
-    { name: "Wrist flexor stretch", base: 20, unit: "time" },
-    { name: "Seated forward fold", base: 40, unit: "time" },
-    { name: "Lying quad release", base: 30, unit: "time" },
-    { name: "Hamstring hold", base: 35, unit: "time" },
-    { name: "World's greatest stretch", base: 40, unit: "time" }
+    { name: "Hamstring stretch", base: 40, unit: "time", slug: "hamstring-stretch" },
+    { name: "Quad stretch", base: 40, unit: "time", slug: "quad-stretch" },
+    { name: "Butterfly stretch", base: 35, unit: "time", slug: "butterfly-stretch" },
+    { name: "Pigeon prep", base: 35, unit: "time", slug: "pigeon-prep" },
+    { name: "Glute stretch", base: 30, unit: "time", slug: "glute-stretch" },
+    { name: "Adductor stretch", base: 30, unit: "time", slug: "adductor-stretch" },
+    { name: "Lying quad release", base: 30, unit: "time", slug: "lying-quad-release" },
+    { name: "Torso twist", base: 30, unit: "time", slug: "torso-twist" },
+    { name: "Chest opener", base: 25, unit: "time", slug: "chest-opener" },
+    { name: "Triceps stretch", base: 20, unit: "time", slug: "triceps-stretch" },
+    { name: "Seated spinal twist", base: 30, unit: "time", slug: "seated-spinal-twist" },
+    { name: "Standing calf stretch", base: 25, unit: "time", slug: "standing-calf-stretch" },
+    { name: "Hamstring hold", base: 30, unit: "time", slug: "hamstring-hold" },
+    { name: "World's greatest stretch", base: 40, unit: "time", slug: "worlds-greatest-stretch" },
+    { name: "IT band lean", base: 25, unit: "time", slug: "it-band-lean" },
+    { name: "Hip opener (kneeling)", base: 30, unit: "time", slug: "hip-opener-kneeling" },
+    { name: "Figure-4 lying", base: 30, unit: "time", slug: "figure4-lying" },
+    { name: "Shoulder cross-body", base: 20, unit: "time", slug: "shoulder-cross-body" },
+    { name: "Neck mobility hold", base: 18, unit: "time", slug: "neck-mobility-hold" },
+    { name: "Wrist mobility stretch", base: 15, unit: "time", slug: "wrist-mobility-stretch" }
   ],
+
   regular: [
-    { name: "Bodyweight squats", base: 30, unit: "time" },
-    { name: "Push-ups (knees if needed)", base: 30, unit: "time" },
-    { name: "Alternating lunges", base: 30, unit: "time" },
-    { name: "Plank", base: 40, unit: "time" },
-    { name: "Glute bridge", base: 30, unit: "time" },
-    { name: "Standing knee lifts", base: 30, unit: "time" },
-    { name: "Incline push-ups (hands on counter)", base: 30, unit: "time" },
-    { name: "Calf raises", base: 30, unit: "time" },
-    { name: "Side lunges", base: 30, unit: "time" },
-    { name: "Supermans", base: 30, unit: "time" },
-    { name: "Heel taps", base: 30, unit: "time" },
-    { name: "Tabletop leg lifts", base: 30, unit: "time" },
-    { name: "Reverse lunges", base: 30, unit: "time" },
-    { name: "Hip bridges with march", base: 30, unit: "time" },
-    { name: "Tricep dips (chair)", base: 30, unit: "time" },
-    { name: "Standing oblique crunch", base: 30, unit: "time" },
-    { name: "Bird-dog", base: 30, unit: "time" },
-    { name: "Step ups (low)", base: 30, unit: "time" },
-    { name: "Inner thigh lifts", base: 30, unit: "time" },
-    { name: "Wall sits", base: 30, unit: "time" }
+    { name: "Bodyweight squats", base: 30, unit: "time", slug: "bodyweight-squats" },
+    { name: "Incline push-ups", base: 28, unit: "time", slug: "incline-push-ups" },
+    { name: "Alternating lunges", base: 30, unit: "time", slug: "alternating-lunges" },
+    { name: "Plank (forearms)", base: 40, unit: "time", slug: "plank-forearms" },
+    { name: "Glute bridge", base: 30, unit: "time", slug: "glute-bridge" },
+    { name: "Standing knee lifts", base: 25, unit: "time", slug: "standing-knee-lifts" },
+    { name: "Calf raises", base: 25, unit: "time", slug: "calf-raises" },
+    { name: "Side lunges", base: 28, unit: "time", slug: "side-lunges" },
+    { name: "Supermans", base: 24, unit: "time", slug: "supermans" },
+    { name: "Reverse lunges", base: 28, unit: "time", slug: "reverse-lunges" },
+    { name: "Bird-dog", base: 24, unit: "time", slug: "bird-dog" },
+    { name: "Step ups (low)", base: 28, unit: "time", slug: "step-ups-low" },
+    { name: "Tricep dips (chair)", base: 26, unit: "time", slug: "tricep-dips-chair" },
+    { name: "Heel taps", base: 24, unit: "time", slug: "heel-taps" },
+    { name: "Hip bridges with march", base: 26, unit: "time", slug: "hip-bridges-march" },
+    { name: "Standing oblique crunch", base: 24, unit: "time", slug: "standing-oblique-crunch" },
+    { name: "Wall sits", base: 30, unit: "time", slug: "wall-sits" },
+    { name: "Tabletop leg lifts", base: 24, unit: "time", slug: "tabletop-leg-lifts" },
+    { name: "Reverse fly (bodyweight)", base: 22, unit: "time", slug: "reverse-fly-bodyweight" },
+    { name: "Deadbug core", base: 24, unit: "time", slug: "deadbug-core" }
   ],
+
   intense: [
-    { name: "Mountain climbers", base: 25, unit: "time" },
-    { name: "Jump squats (modified)", base: 20, unit: "time" },
-    { name: "Plank shoulder taps", base: 25, unit: "time" },
-    { name: "High knees", base: 30, unit: "time" },
-    { name: "Burpees (half)", base: 25, unit: "time" },
-    { name: "Speed skaters (low impact)", base: 25, unit: "time" },
-    { name: "Fast alternating lunges", base: 25, unit: "time" },
-    { name: "Bicycle crunches", base: 30, unit: "time" },
-    { name: "Tuck jumps (low)", base: 20, unit: "time" },
-    { name: "Broad jump singles (low)", base: 20, unit: "time" },
-    { name: "Plank jacks (low)", base: 25, unit: "time" },
-    { name: "Skips without rope", base: 25, unit: "time" },
-    { name: "Reverse burpee step back", base: 25, unit: "time" },
-    { name: "Alternating jump lunges", base: 25, unit: "time" },
-    { name: "Fast squat pulses", base: 25, unit: "time" },
-    { name: "Explosive push-up (low)", base: 20, unit: "time" },
-    { name: "Climber holds", base: 30, unit: "time" },
-    { name: "Star jumps (low)", base: 20, unit: "time" },
-    { name: "Russian twists (fast)", base: 30, unit: "time" },
-    { name: "Heel flicks", base: 25, unit: "time" }
+    { name: "Mountain climbers", base: 28, unit: "time", slug: "mountain-climbers" },
+    { name: "Jump squats (modified)", base: 26, unit: "time", slug: "jump-squats-modified" },
+    { name: "Plank shoulder taps", base: 26, unit: "time", slug: "plank-shoulder-taps" },
+    { name: "High knees", base: 30, unit: "time", slug: "high-knees" },
+    { name: "Burpees (half)", base: 28, unit: "time", slug: "burpees-half" },
+    { name: "Speed skaters", base: 26, unit: "time", slug: "speed-skaters" },
+    { name: "Fast alternating lunges", base: 26, unit: "time", slug: "fast-alternating-lunges" },
+    { name: "Bicycle crunches", base: 28, unit: "time", slug: "bicycle-crunches" },
+    { name: "Tuck jump (low)", base: 22, unit: "time", slug: "tuck-jump-low" },
+    { name: "Plank jacks (low)", base: 26, unit: "time", slug: "plank-jacks-low" },
+    { name: "Skips without rope", base: 24, unit: "time", slug: "skips-without-rope" },
+    { name: "Explosive push-up (knee mod)", base: 22, unit: "time", slug: "explosive-pushup-knee" },
+    { name: "Alternating jump lunges", base: 26, unit: "time", slug: "alternating-jump-lunges" },
+    { name: "Fast squat pulses", base: 24, unit: "time", slug: "fast-squat-pulses" },
+    { name: "Russian twists (fast)", base: 26, unit: "time", slug: "russian-twists-fast" },
+    { name: "Mountain climber hold", base: 28, unit: "time", slug: "mountain-climber-hold" },
+    { name: "Climber bursts", base: 26, unit: "time", slug: "climber-bursts" },
+    { name: "Star jumps (low)", base: 22, unit: "time", slug: "star-jumps-low" },
+    { name: "Heel flicks", base: 24, unit: "time", slug: "heel-flicks" },
+    { name: "Explosive step-ups", base: 24, unit: "time", slug: "explosive-step-ups" }
   ],
+
   hardcore: [
-    { name: "Burpees (modified)", base: 20, unit: "time" },
-    { name: "Explosive step-ups", base: 20, unit: "time" },
-    { name: "Tuck jumps (low)", base: 15, unit: "time" },
-    { name: "Plyo lunges", base: 20, unit: "time" },
-    { name: "One-leg hip thrust", base: 25, unit: "time" },
-    { name: "Pistol squats (assisted)", base: 30, unit: "time" },
-    { name: "Clap push-ups (knee mod)", base: 20, unit: "time" },
-    { name: "Hand-release push-ups (fast)", base: 20, unit: "time" },
-    { name: "Burpee tuck", base: 18, unit: "time" },
-    { name: "Single-leg plyo hops", base: 18, unit: "time" },
-    { name: "One-arm plank hold (mod)", base: 25, unit: "time" },
-    { name: "Explosive mountain climbers", base: 20, unit: "time" },
-    { name: "Box jump substitute", base: 20, unit: "time" },
-    { name: "Tricep plyo dips", base: 20, unit: "time" },
-    { name: "Weighted-ish squat pulses (hold)", base: 25, unit: "time" },
-    { name: "Heavy core rotations", base: 25, unit: "time" },
-    { name: "Sprint-in-place", base: 30, unit: "time" },
-    { name: "L-sit hold (mod)", base: 20, unit: "time" },
-    { name: "Aztec push-ups (mod)", base: 18, unit: "time" },
-    { name: "All-out effort squat jumps", base: 20, unit: "time" }
+    { name: "Burpees (modified)", base: 30, unit: "time", slug: "burpees-modified" },
+    { name: "Plyo lunges", base: 28, unit: "time", slug: "plyo-lunges" },
+    { name: "Pistol squat (assisted)", base: 30, unit: "time", slug: "pistol-squat-assisted" },
+    { name: "Tuck jumps", base: 26, unit: "time", slug: "tuck-jumps" },
+    { name: "Explosive mountain climbers", base: 28, unit: "time", slug: "explosive-mountain-climbers" },
+    { name: "One-leg hip thrust", base: 28, unit: "time", slug: "one-leg-hip-thrust" },
+    { name: "Clap push-ups (mod)", base: 26, unit: "time", slug: "clap-pushups-mod" },
+    { name: "Single-leg plyo hops", base: 26, unit: "time", slug: "single-leg-plyo-hops" },
+    { name: "Sprint-in-place", base: 30, unit: "time", slug: "sprint-in-place" },
+    { name: "L-sit hold (mod)", base: 24, unit: "time", slug: "l-sit-hold-mod" },
+    { name: "Aztec push-ups (mod)", base: 24, unit: "time", slug: "aztec-pushups-mod" },
+    { name: "All-out squat jumps", base: 26, unit: "time", slug: "all-out-squat-jumps" },
+    { name: "Explosive plank taps", base: 24, unit: "time", slug: "explosive-plank-taps" },
+    { name: "Plyo push-up (mod)", base: 24, unit: "time", slug: "plyo-pushup-mod" },
+    { name: "Box jump substitute", base: 24, unit: "time", slug: "box-jump-substitute" },
+    { name: "Weighted-ish squat pulses", base: 26, unit: "time", slug: "weightedish-squat-pulses" },
+    { name: "Heavy core rotations", base: 26, unit: "time", slug: "heavy-core-rotations" },
+    { name: "Burpee tuck", base: 26, unit: "time", slug: "burpee-tuck" },
+    { name: "One-arm plank (mod)", base: 24, unit: "time", slug: "one-arm-plank-mod" },
+    { name: "Aztec hold (mod)", base: 22, unit: "time", slug: "aztec-hold-mod" }
   ]
 };
+
 
 // ------------------ Utilities ------------------
 function shuffle(arr) {
@@ -147,53 +153,94 @@ function pickUnique(arr, n) {
   return s.slice(0, Math.min(n, s.length));
 }
 
-// ------------------ Build routine (single canonical function) ------------------
+// ------------------ Helpers & buildRoutine (drop-in replacement) ------------------
+
+// shuffleArray - Fisher-Yates
+function shuffleArray(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// pickUnique - pick up to n unique items from a pool (returns shallow copies)
+function pickUnique(pool, n) {
+  const pick = shuffleArray(pool).slice(0, Math.min(n, pool.length));
+  return pick.map(x => ({ ...x }));
+}
+
+// distributeDurations - split MAIN_SEC proportionally by item.base, ensure integers and exact sum
+function distributeDurations(items, MAIN_SEC, minSec = 6) {
+  if (!items || items.length === 0) return items;
+  const timeItems = items.map(it => ({ ...it })); // copy so we don't mutate POOLS
+  const totalBase = timeItems.reduce((s, it) => s + (it.base || 30), 0) || 1;
+
+  // First pass: proportional allocation (rounded)
+  const result = timeItems.map((it) => {
+    const share = ((it.base || 30) / totalBase) * MAIN_SEC;
+    const secs = Math.max(minSec, Math.round(share));
+    return { ...it, duration_or_reps: secs, unit: it.unit || "time" };
+  });
+
+  // Fix rounding mismatch by adjusting the last time-unit item
+  const sumAssigned = result.reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
+  const diff = MAIN_SEC - sumAssigned;
+  if (diff !== 0) {
+    for (let i = result.length - 1; i >= 0; i--) {
+      if (result[i].unit === "time") {
+        result[i].duration_or_reps = Math.max(minSec, Number(result[i].duration_or_reps) + diff);
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+// buildRoutine - uses full 5 minutes (300s) for main, returns slug & empty cooldown
 function buildRoutine(intensity = "regular") {
-  // duration is fixed 5 minutes (300s)
-  const TOTAL_SEC = 5 * 60;
-  // reserve small cooldown
-  const COOLDOWN_SEC = 40;
-  const MAIN_SEC = TOTAL_SEC - COOLDOWN_SEC;
+  const TOTAL_SEC = 5 * 60; // 300s used entirely for main
+  const MAIN_SEC = TOTAL_SEC;
 
   const key = String(intensity || "regular").toLowerCase();
   const pool = POOLS[key] || POOLS.regular;
 
-  // choose 4 unique main exercises (more variety)
-  const mainChoices = pickUnique(pool, 4);
-
-  // assign seconds proportional to base values (but ensure integer secs and >=6s)
-  const totalBase = mainChoices.reduce((s, x) => s + (x.base || 30), 0) || 1;
-  const main = mainChoices.map((it) => {
-    const base = it.base || 30;
-    const secs = Math.max(6, Math.round((base / totalBase) * MAIN_SEC));
-    return {
-      name: it.name,
-      unit: it.unit || "time",
-      duration_or_reps: secs,
-      notes: it.notes || ""
-    };
-  });
-
-  // fix rounding differences (adjust last)
-  const assigned = main.reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
-  const diff = MAIN_SEC - assigned;
-  if (diff !== 0 && main.length) {
-    main[main.length - 1].duration_or_reps = Math.max(6, main[main.length - 1].duration_or_reps + diff);
+  // Decide how many main exercises to pick
+  let count;
+  switch (key) {
+    case "chill": count = 5; break;
+    case "stretch": count = 5; break;
+    case "regular": count = 6; break;
+    case "intense": count = 6; break;
+    case "hardcore": count = 6; break;
+    default: count = 6;
   }
 
-  // cooldown: pick 2 short stretches
-  const cooldownPool = [
-    { name: "Child's pose", duration: 20 },
-    { name: "Hamstring stretch", duration: 20 },
-    { name: "Seated forward fold", duration: 20 },
-    { name: "Chest opener", duration: 20 }
-  ];
-  const cooldownChoices = pickUnique(cooldownPool, 2);
-  const cooldown = cooldownChoices.map(c => ({ name: c.name, unit: "time", duration_or_reps: Math.round(COOLDOWN_SEC / cooldownChoices.length) }));
+  // Pick unique exercises from the chosen pool only
+  const picked = pickUnique(pool, count);
 
-  // playlist hint
+  // Distribute MAIN_SEC across picked items
+  const withDurations = distributeDurations(picked, MAIN_SEC, 6);
+
+  // Shuffle final order to avoid predictable long/short sequence
+  const mainShuffled = shuffleArray(withDurations);
+
+  // Normalize the returned objects and include slug
+  const main = mainShuffled.map(it => ({
+    name: it.name,
+    slug: it.slug || (it.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")),
+    unit: it.unit || "time",
+    duration_or_reps: Number(it.duration_or_reps || 20),
+    notes: it.notes || ""
+  }));
+
+  // Cooldown removed (empty array for compatibility)
+  const cooldown = [];
+
   const playlist = [
-    { title: `${key} mix`, hint: `${key} playlist`, query: `https://www.youtube.com/results?search_query=${encodeURIComponent(key + " workout mix")}` }
+    { title: `${key} mix`, hint: `${key} playlist`, query: `https://www.youtube.com/results?search_query=${encodeURIComponent(key + " workout mix 5 minutes")}` }
   ];
 
   return {
@@ -204,6 +251,8 @@ function buildRoutine(intensity = "regular") {
     playlist
   };
 }
+
+
 
 // ------------------ API endpoints ------------------
 app.get("/health", (req, res) => res.json({ ok: true, app: APP_NAME, time: new Date().toISOString() }));
