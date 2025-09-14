@@ -25,7 +25,7 @@ const THEME = {
   text: "#e6eef3",
   dim: "#94a3b8",
   cardBg: "#061725",
-  thumbBg: "#051421",
+  thumbBg: "#051421"
 };
 
 // ---------- exercise slug mapping ----------
@@ -519,19 +519,7 @@ export default function App() {
 
   // UI render
   return (
-    <div
-    style={{
-      background: THEME.bg,
-      color: THEME.text,
-      width: "100%",
-      maxWidth: "420px",   // fixed width
-      margin: "0 auto",    // center horizontally
-      minHeight: "100vh",  // full height
-      display: "flex",
-      flexDirection: "column",
-    }}
-  >
-    {
+
     <div style={{ ...styles.page, background: THEME.bg, color: THEME.text }}>
       <Confetti active={allCompleted} />
       <div style={styles.container}>
@@ -637,7 +625,7 @@ export default function App() {
 
                 {allCompleted && (
                   <button aria-label="Support / Donate" onClick={donate} style={{ ...styles.primaryBtn, background: `linear-gradient(90deg, ${THEME.success}, ${THEME.accentB})` }}>
-                    Support • Donate
+                    Support if you like the app!
                   </button>
                 )}
               </div>
@@ -646,8 +634,7 @@ export default function App() {
         </section>
       </div>
     </div>
-    }
-    </div>
+
   );
 }
 
