@@ -528,7 +528,7 @@ export default function App() {
             <div style={{ ...styles.logo, background: `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})` }} aria-hidden>MC</div>
             <div>
               <div style={styles.title}>MicroCoach — 5-min workouts</div>
-              <div style={styles.subtitle}>Stretch, chill or intense — but always on time </div>
+              <div style={styles.subtitle}>Stretch, chill or intense — but always on time</div>
             </div>
           </div>
 
@@ -555,11 +555,11 @@ export default function App() {
             <label style={styles.label}>
               Playlist
               <select aria-label="Playlist" value={playlist} onChange={e => setPlaylist(e.target.value)} style={styles.select}>
+                <option value="pop">80s Classic</option>
                 <option value="electronic">Techno</option>
                 <option value="lofi">Relaxed</option>
                 <option value="hiphop">Dark Electro</option>
                 <option value="rock">Hard Rock</option>
-                <option value="pop">80s Classic</option>
               </select>
             </label>
           </div>
@@ -669,7 +669,7 @@ const styles = {
   stepInfo: { flex: 1 },
   stepName: { fontWeight: 700, color: THEME.text },
   stepMeta: { color: "#9fb3c4", fontSize: 13 },
-  smallBtn: { background: "#0f1724", color: "#9be7ff", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" },
+  smallBtn: { background: "#0f1724", color: "#9be7ff", padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" },
   linkBtn: { color: "#9be7ff", background: "transparent", border: "1px solid rgba(255,255,255,0.03)", padding: "6px 8px", borderRadius: 8, textDecoration: "none" },
   err: { marginTop: 8, color: "#ff7b7b" }
 };
