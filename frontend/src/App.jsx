@@ -426,7 +426,7 @@ export default function App() {
 
     // fallback to telegram.me share
     try {
-      const telegramShareUrl = `https://telegram.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent("Try MicroCoach — quick 5-min home workouts!")}`;
+      const telegramShareUrl = `https://telegram.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent("Try MicroCoach — 5-min workouts!")}`;
       window.open(telegramShareUrl, "_blank", "noopener,noreferrer");
       return;
     } catch (e) {
@@ -464,7 +464,7 @@ export default function App() {
         if (txHash) {
           // try verify with server (optional)
           try {
-            await fetch("/api/verify-ton-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ txHash, to: TON_RECEIVER, amountNano: String(AMOUNT_NANOTON) }) });
+            await fetch("/api/verify-ton-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ txHash, to: UQCkO9yhVbY_d0eTqyTyh71zrDtb3DpLIzKxHAZt1IZrqKha, amountNano: String(AMOUNT_NANOTON) }) });
             alert("Thank you! Payment sent.");
             return;
           } catch (err) {
@@ -503,13 +503,13 @@ export default function App() {
       console.error("donate fallback failed", e);
       // final fallback: copy bot link
       try {
-        const fallbackBot = `https://t.me/${BOT_USERNAME}`;
+        const fallbackBot = `https://t.me/${PocketedCoach_bot}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(fallbackBot);
           alert(`Couldn't open invoice. Bot link copied: ${fallbackBot}`);
           return;
         } else {
-          window.prompt("Open this in Telegram to support:", `https://t.me/${BOT_USERNAME}`);
+          window.prompt("Open this in Telegram to support:", `https://t.me/${PocketedCoach_bot}`);
         }
       } catch (ee) {
         console.error(ee);
@@ -519,6 +519,19 @@ export default function App() {
 
   // UI render
   return (
+    <div
+    style={{
+      background: THEME.bg,
+      color: THEME.text,
+      width: "100%",
+      maxWidth: "420px",   // fixed width
+      margin: "0 auto",    // center horizontally
+      minHeight: "100vh",  // full height
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    {
     <div style={{ ...styles.page, background: THEME.bg, color: THEME.text }}>
       <Confetti active={allCompleted} />
       <div style={styles.container}>
@@ -633,7 +646,8 @@ export default function App() {
         </section>
       </div>
     </div>
-    
+    }
+    </div>
   );
 }
 
