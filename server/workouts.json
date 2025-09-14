@@ -119,6 +119,66 @@
           }
         ]
       }
+    },
+    {
+      "id": 1757879435203,
+      "created_at": "2025-09-14T19:50:35.203Z",
+      "payload": {
+        "total_duration_minutes": 5,
+        "intensity_label": "hardcore",
+        "main": [
+          {
+            "name": "Explosive plank taps",
+            "slug": "explosive-plank-taps",
+            "unit": "time",
+            "duration_or_reps": 46,
+            "notes": ""
+          },
+          {
+            "name": "Box jump substitute",
+            "slug": "box-jump-substitute",
+            "unit": "time",
+            "duration_or_reps": 46,
+            "notes": ""
+          },
+          {
+            "name": "Pistol squat (assisted)",
+            "slug": "pistol-squat-assisted",
+            "unit": "time",
+            "duration_or_reps": 58,
+            "notes": ""
+          },
+          {
+            "name": "Plyo lunges",
+            "slug": "plyo-lunges",
+            "unit": "time",
+            "duration_or_reps": 54,
+            "notes": ""
+          },
+          {
+            "name": "Plyo push-up (mod)",
+            "slug": "plyo-pushup-mod",
+            "unit": "time",
+            "duration_or_reps": 46,
+            "notes": ""
+          },
+          {
+            "name": "Single-leg plyo hops",
+            "slug": "single-leg-plyo-hops",
+            "unit": "time",
+            "duration_or_reps": 50,
+            "notes": ""
+          }
+        ],
+        "cooldown": [],
+        "playlist": [
+          {
+            "title": "hardcore mix",
+            "hint": "hardcore playlist",
+            "query": "https://www.youtube.com/results?search_query=hardcore%20workout%20mix%205%20minutes"
+          }
+        ]
+      }
     }
   ]
 }
