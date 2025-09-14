@@ -25,7 +25,7 @@ const THEME = {
   text: "#e6eef3",
   dim: "#94a3b8",
   cardBg: "#061725",
-  thumbBg: "#051421",
+  thumbBg: "#051421"
 };
 
 // ---------- exercise slug mapping ----------
@@ -396,7 +396,7 @@ export default function App() {
   // Share: prefer Telegram WebApp link, then navigator.share, else telegram.me or clipboard
   async function shareApp({ user } = {}) {
     const uid = (user && (user.id || user.user_id)) ? (user.id || user.user_id) : "default";
-    const appUrl = `https://t.me/${BOT_USERNAME}?start=ref_${encodeURIComponent(uid)}`;
+    const appUrl = `https://t.me/${PocketedCoach_bot}?start=ref_${encodeURIComponent(uid)}`;
 
     // Telegram WebApp openLink or shareLink
     try {
@@ -519,6 +519,19 @@ export default function App() {
 
   // UI render
   return (
+    <div
+    style={{
+      background: THEME.bg,
+      color: THEME.text,
+      width: "100%",
+      maxWidth: "420px",   // fixed width
+      margin: "0 auto",    // center horizontally
+      minHeight: "100vh",  // full height
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    {
     <div style={{ ...styles.page, background: THEME.bg, color: THEME.text }}>
       <Confetti active={allCompleted} />
       <div style={styles.container}>
@@ -527,7 +540,7 @@ export default function App() {
             <div style={{ ...styles.logo, background: `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})` }} aria-hidden>MC</div>
             <div>
               <div style={styles.title}>MicroCoach — 5-min workouts</div>
-              <div style={styles.subtitle}>Sequential timer • Donate & share</div>
+              <div style={styles.subtitle}>Stretch, chill or intense — but always on time </div>
             </div>
           </div>
 
@@ -632,6 +645,8 @@ export default function App() {
           )}
         </section>
       </div>
+    </div>
+    }
     </div>
   );
 }
