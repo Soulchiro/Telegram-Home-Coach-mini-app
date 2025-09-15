@@ -1,17 +1,20 @@
 // frontend/src/App.jsx
 import React, { useEffect, useRef, useState } from "react";
+import exerciseIcons from "./icons/exerciseIcons"; // optional - keep if you added icons
 
 /*
-  Original MicroCoach App.jsx with production-safe guards:
-  - dynamic optional icons import (won't crash if file missing)
-  - ErrorBoundary + global error handlers to show errors instead of blank page
-  - image fallback to inline SVG when /public/images/{slug}.png missing
+  MicroCoach App.jsx - improved
+  - Fixes images path (use /images/{slug}.png from frontend/public/images)
+  - Adds minimum loading delay
+  - Central THEME object
+  - Share & Donate improved
+  - Highlights playlist change area (see PLAYLISTS constant)
 */
 
 const BOT_USERNAME = process.env.REACT_APP_BOT_USERNAME || "PocketedCoach_bot";
 const TON_RECEIVER = process.env.REACT_APP_TON_RECEIVER || "UQCkO9yhVbY_d0eTqyTyh71zrDtb3DpLIzKxHAZt1IZrqKha";
 
-// Theme
+// ---------- THEME (change app colors here) ----------
 const THEME = {
   bg: "#071022",
   cardGradA: "#071827",
@@ -22,22 +25,22 @@ const THEME = {
   text: "#e6eef3",
   dim: "#94a3b8",
   cardBg: "#061725",
-  thumbBg: "#051421"
+  thumbBg: "#051421",
 };
 
-// exercise -> slug mapping (extend as needed)
+// ---------- exercise slug mapping ----------
 const EXERCISE_SLUGS = {
   "Shoulder shrugs": "shouldershrugs",
-  "Standing side bend": "standingsidebend",
-  "Deep breaths": "deepbreaths",
-  "Seated cat-cow": "seatedcatcow",
+  "Standing side bend": "standingsidebend", 
+  "Deep breaths": "deepbreaths", 
+  "Seated cat-cow": "seatedcatcow", 
   "Neck rolls": "armcircles",
-  "Child's pose": "childpose",
+  "Child's pose": "childpose", 
   "Bodyweight squats": "armcircles",
   "Push-ups (knees if needed)": "armcircles",
   "Jumping jacks": "jumping-jacks",
   "Plank": "plank",
-  "Wrist circles": "wristcircles",
+  "Wrist circles": "wristcircles", 
   "High knees": "high-knees",
   "Mountain climbers": "mountain-climbers",
   "Lunges (alternating)": "lunges",
@@ -46,9 +49,10 @@ const EXERCISE_SLUGS = {
   "Glute bridge": "glute-bridge",
   "Hamstring stretch": "hamstring-stretch",
   "World's greatest stretch": "worlds-greatest-stretch",
+  // add more name -> slug entries if your server returns different names
 };
 
-// Placeholder SVG (used when no image available)
+// placeholder inline SVG
 function PlaceholderSVG({ label = "" }) {
   return (
     <svg width="84" height="64" viewBox="0 0 84 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={label}>
@@ -62,40 +66,12 @@ function PlaceholderSVG({ label = "" }) {
   );
 }
 
-// ErrorBoundary to avoid blank page for render-time errors
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null, info: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    this.setState({ error, info });
-    console.error("ErrorBoundary caught", error, info);
-  }
-  render() {
-    if (!this.state.hasError) return this.props.children;
-    return (
-      <div style={{ padding: 20, color: "#fff", background: "#40197a", borderRadius: 8, margin: 16 }}>
-        <h2 style={{ marginTop: 0 }}>Something went wrong</h2>
-        <div style={{ fontSize: 13, color: "#fff", opacity: 0.9 }}>{String(this.state.error?.toString())}</div>
-        <pre style={{ whiteSpace: "pre-wrap", marginTop: 8, fontSize: 12, color: "#eee" }}>
-          {this.state.info?.componentStack || ""}
-        </pre>
-        <div style={{ marginTop: 8 }}>
-          <button onClick={() => window.location.reload()} style={{ padding: "8px 12px", borderRadius: 6 }}>Reload</button>
-        </div>
-      </div>
-    );
-  }
-}
-
-// Exercise row (uses only public/images or placeholder)
-function ExerciseRow({ idx, step, activeIndex, remainingForActive, icons }) {
-  const slug = EXERCISE_SLUGS[step.name] || (step.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+// Exercise row component
+function ExerciseRow({ idx, step, activeIndex, remainingForActive }) {
+  const slug = EXERCISE_SLUGS[step.name] || step.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  // --- FIXED IMAGE PATH: use /images/... (served from frontend/public/images) ---
   const imgSrc = `/images/${slug}.png`;
+  const IconComp = exerciseIcons && exerciseIcons[slug];
   const [imgError, setImgError] = useState(false);
 
   const isActive = idx === activeIndex;
@@ -105,13 +81,21 @@ function ExerciseRow({ idx, step, activeIndex, remainingForActive, icons }) {
   if (base > 0) {
     if (completed) percent = 100;
     else if (isActive) percent = Math.round(((base - remainingForActive) / base) * 100);
+    else percent = 0;
   }
 
   return (
     <div style={{ ...styles.exerciseCard, opacity: completed ? 0.9 : 1 }} aria-live={isActive ? "polite" : "off"}>
       <div style={styles.thumb}>
         {!imgError ? (
-          <img src={imgSrc} alt={step.name} style={styles.img} onError={() => setImgError(true)} />
+          <img
+            src={imgSrc}
+            alt={step.name}
+            style={styles.img}
+            onError={() => setImgError(true)}
+          />
+        ) : IconComp ? (
+          <IconComp width={84} height={64} />
         ) : (
           <PlaceholderSVG label={step.name} />
         )}
@@ -143,23 +127,77 @@ function ExerciseRow({ idx, step, activeIndex, remainingForActive, icons }) {
   );
 }
 
+// little Confetti DOM when complete
+function Confetti({ active }) {
+  if (!active) return null;
+  const pieces = Array.from({ length: 24 });
+  return (
+    <div aria-hidden style={styles.confettiWrap}>
+      {pieces.map((_, i) => {
+        const left = Math.round(Math.random() * 100);
+        const delay = Math.random() * 0.6;
+        const size = 6 + Math.round(Math.random() * 10);
+        const duration = 1200 + Math.round(Math.random() * 1400);
+        const bg = [THEME.accentA, THEME.accentB, THEME.success, "#f59e0b"][Math.floor(Math.random() * 4)];
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: `${left}%`,
+              top: "-10%",
+              width: size,
+              height: size * 0.6,
+              background: bg,
+              opacity: 0.95,
+              borderRadius: 3,
+              transform: `rotate(${Math.random() * 360}deg)`,
+              animation: `confetti-fall ${duration}ms linear ${delay}s forwards`
+            }}
+          />
+        );
+      })}
+      <style>{`
+        @keyframes confetti-fall {
+          0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(120vh) rotate(200deg); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// STREAK helpers (localStorage)
 const STREAK_KEY = "microcoach_streak_v1";
 function todayISO() { const d = new Date(); return d.toISOString().slice(0, 10); }
 function yesterdayISO() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
 function loadStreak() { try { const raw = localStorage.getItem(STREAK_KEY); if (!raw) return { count: 0, last: null }; return JSON.parse(raw); } catch { return { count: 0, last: null }; } }
 function saveStreak(obj) { try { localStorage.setItem(STREAK_KEY, JSON.stringify(obj)); } catch {} }
 
-// Playlists (example)
+// ---------- PLAYLISTS (change these to your real playlist links) ----------
+// Replace the arrays below with your own playlists/URLs. Each entry should be { title, query, hint }.
+// Example: PLAYLISTS.electronic = [{ title: "Warmup Mix", query: "https://open.spotify.com/...", hint: "..." }, ...]
 const PLAYLISTS = {
-  electronic: [{ title: "Electronic Short Mix", query: "https://open.spotify.com/playlist/7H0rGB63hUimokOWAFPi9S?si=_LYQ63ghRuCYyORuBICG0Q", hint: "Electronic energy" }],
-  lofi: [{ title: "Lofi 5-min", query: "https://open.spotify.com/playlist/71hJFZoqd7Ow3xZq3S5PyM?si=JdMDZsAaRqylB28bFNQbXg", hint: "Chill beats" }],
-  hiphop: [{ title: "Hip-Hop Pump", query: "https://open.spotify.com/playlist/5A5cLkWcIc5BifNOa4UZTl?si=8PzFHuNOSe6pwNovba5Rng", hint: "Hip-Hop energy" }],
-  rock: [{ title: "Rock Short", query: "https://open.spotify.com/playlist/4BxyA2GrkSiKWwKEqVFh6r?si=SI3W8vj8QtSfVPNv0wBrMA", hint: "Rock pump" }],
-  pop: [{ title: "Pop Hits", query: "https://open.spotify.com/playlist/6v84skfMiLBEgUOEHB6LNS?si=fST-cgxETIiEFQDK_Wndaw", hint: "Pop vibes" }]
+  electronic: [
+    { title: "Electronic Short Mix", query: "https://open.spotify.com/playlist/7H0rGB63hUimokOWAFPi9S?si=_LYQ63ghRuCYyORuBICG0Q", hint: "Electronic energy" }
+  ],
+  lofi: [
+    { title: "Lofi 5-min", query: "https://open.spotify.com/playlist/71hJFZoqd7Ow3xZq3S5PyM?si=JdMDZsAaRqylB28bFNQbXg", hint: "Chill beats" }
+  ],
+  hiphop: [
+    { title: "Hip-Hop Pump", query: "https://open.spotify.com/playlist/5A5cLkWcIc5BifNOa4UZTl?si=8PzFHuNOSe6pwNovba5Rng", hint: "Hip-Hop energy" }
+  ],
+  rock: [
+    { title: "Rock Short", query: "https://open.spotify.com/playlist/4BxyA2GrkSiKWwKEqVFh6r?si=SI3W8vj8QtSfVPNv0wBrMA", hint: "Rock pump" }
+  ],
+  pop: [
+    { title: "Pop Hits", query: "https://open.spotify.com/playlist/6v84skfMiLBEgUOEHB6LNS?si=fST-cgxETIiEFQDK_Wndaw", hint: "Pop vibes" }
+  ]
 };
+// ------------------- end playlist section -------------------
 
 export default function App() {
-  // app state (kept as in original)
   const [intensity, setIntensity] = useState("regular");
   const [playlist, setPlaylist] = useState("electronic");
   const [plan, setPlan] = useState(null);
@@ -167,23 +205,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // execution
   const [running, setRunning] = useState(false);
   const [paused, setPaused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [remainingForActive, setRemainingForActive] = useState(0);
   const intervalRef = useRef(null);
 
-  // optional icons — load dynamically, fallback to null (so missing module doesn't crash)
-  const [icons, setIcons] = useState(null);
-  useEffect(() => {
-    let mounted = true;
-    import("./icons/exerciseIcons")
-      .then(mod => { if (mounted) setIcons(mod.default || mod); })
-      .catch(() => { if (mounted) setIcons(null); /* missing icons file is OK */ });
-    return () => { mounted = false; };
-  }, []);
-
-  // refs for interval closures
+  // refs for latest values in interval
   const segmentsRef = useRef(segments);
   const activeIndexRef = useRef(activeIndex);
   const remainingRef = useRef(remainingForActive);
@@ -193,45 +222,31 @@ export default function App() {
   useEffect(() => { remainingRef.current = remainingForActive; }, [remainingForActive]);
   useEffect(() => { return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; }, []);
 
-  // global error handlers to surface runtime errors (especially useful in production)
-  useEffect(() => {
-    const onErr = (msg, source, lineno, colno, err) => {
-      console.error("window.onerror", { msg, source, lineno, colno, err });
-      setError(err ? (err.message || String(err)) : String(msg));
-      return false; // allow normal propagation
-    };
-    const onReject = (ev) => {
-      console.error("unhandledrejection", ev);
-      setError(ev?.reason ? (ev.reason.message || String(ev.reason)) : "Unhandled rejection");
-    };
-    window.addEventListener("error", onErr);
-    window.addEventListener("unhandledrejection", onReject);
-    return () => { window.removeEventListener("error", onErr); window.removeEventListener("unhandledrejection", onReject); };
-  }, []);
-
-  // streak
+  // streak state
   const [streak, setStreak] = useState(() => loadStreak().count || 0);
   const [lastDate, setLastDate] = useState(() => loadStreak().last || null);
   useEffect(() => { saveStreak({ count: streak, last: lastDate }); }, [streak, lastDate]);
 
+  // completed flag
   const allCompleted = segments.length > 0 && segments.every(s => s._completed);
 
-  // Generate (with fallback to fake plan if server missing)
+  // Generate routine (with minimum fake delay so UI shows "thinking")
   async function generate() {
     setLoading(true);
     setError(null);
     setPlan(null);
     setSegments([]);
-
+    // ensure spinner visible for at least MIN_DELAY ms
     const MIN_DELAY = 800;
     const start = Date.now();
-
     try {
-      const res = await fetch("/api/generate-workout", {
+      const resPromise = fetch("/api/generate-workout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ level: intensity, duration: 5, playlist })
       });
+      const res = await resPromise;
+      // await minimum delay
       const waited = Date.now() - start;
       if (waited < MIN_DELAY) await new Promise(r => setTimeout(r, MIN_DELAY - waited));
       if (!res.ok) throw new Error("network");
@@ -243,52 +258,27 @@ export default function App() {
       setActiveIndex(-1);
       setRemainingForActive(0);
     } catch (e) {
-      console.warn("generate() fallback used", e);
-      // fallback fake plan so UI is visible
-      const fallback = [
-        { name: "Jumping jacks", duration_or_reps: 30, unit: "time", notes: "Warm up", _completed: false },
-        { name: "Plank", duration_or_reps: 30, unit: "time", notes: "Hold steady", _completed: false },
-        { name: "Deep breaths", duration_or_reps: 30, unit: "time", notes: "Cool down", _completed: false }
-      ];
-      setPlan({ intensity_label: intensity });
-      setSegments(fallback);
+      console.error(e);
+      setError("Failed to generate workout. Check server or network.");
     } finally {
       setLoading(false);
     }
   }
 
-  // Save (keeps original server call but also saves to localStorage so "load next time" works)
+  // Save workout (file-based endpoint)
   async function save() {
     if (!plan) return;
     try {
-      localStorage.setItem("microcoach_last_plan", JSON.stringify({ plan, segments, intensity, playlist }));
       const res = await fetch("/api/save-workout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(plan) });
       if (!res.ok) throw new Error("save failed");
       alert("Saved!");
     } catch (e) {
-      console.warn("server save failed (or missing), kept local copy", e);
-      alert("Saved locally");
+      console.error(e);
+      alert("Save failed");
     }
   }
 
-  // load last saved plan from localStorage (if present)
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("microcoach_last_plan");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.plan) {
-          setPlan(parsed.plan);
-          setSegments(parsed.segments || []);
-          setIntensity(parsed.intensity || "regular");
-          setPlaylist(parsed.playlist || "electronic");
-        }
-      }
-    } catch (e) {
-      // ignore parse errors
-    }
-  }, []);
-
+  // mark streak when starting
   function markStreakOnStart() {
     const s = loadStreak();
     const today = todayISO();
@@ -303,7 +293,7 @@ export default function App() {
     }
   }
 
-  // Execution / timer logic (kept original)
+  // Start / resume routine
   function startOrResumeRoutine() {
     if (!segments || segments.length === 0) return;
     if (!running && !paused) {
@@ -386,6 +376,7 @@ export default function App() {
     setRemainingForActive(0);
   }
 
+  // compute total remaining
   function computeTotalRemaining() {
     if (running && activeIndex >= 0) {
       const later = segmentsRef.current.slice(activeIndex + 1).reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
@@ -400,10 +391,14 @@ export default function App() {
     return `${m}:${s}`;
   }
 
-  // Share flow (kept simple here)
+  // ---- SHARE / DONATE FLOW ----
+
+  // Share: prefer Telegram WebApp link, then navigator.share, else telegram.me or clipboard
   async function shareApp({ user } = {}) {
     const uid = (user && (user.id || user.user_id)) ? (user.id || user.user_id) : "default";
     const appUrl = `https://t.me/${BOT_USERNAME}?start=ref_${encodeURIComponent(uid)}`;
+
+    // Telegram WebApp openLink or shareLink
     try {
       if (window.Telegram && window.Telegram.WebApp) {
         if (typeof window.Telegram.WebApp.shareLink === "function") {
@@ -419,6 +414,7 @@ export default function App() {
       console.warn("Telegram share failed", e);
     }
 
+    // Native web share
     try {
       if (navigator.share) {
         await navigator.share({ title: "MicroCoach", text: "Quick 5-min workouts", url: appUrl });
@@ -428,14 +424,16 @@ export default function App() {
       console.warn("navigator.share failed", e);
     }
 
+    // fallback to telegram.me share
     try {
-      const telegramShareUrl = `https://telegram.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent("Try MicroCoach — 5-min workouts!")}`;
+      const telegramShareUrl = `https://telegram.me/share/url?url=${encodeURIComponent(appUrl)}&text=${encodeURIComponent("Try MicroCoach — quick 5-min home workouts!")}`;
       window.open(telegramShareUrl, "_blank", "noopener,noreferrer");
       return;
     } catch (e) {
       console.warn("telegram.me fallback failed", e);
     }
 
+    // copy to clipboard
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(appUrl);
@@ -449,10 +447,13 @@ export default function App() {
     window.prompt("Copy this link:", appUrl);
   }
 
+  // Donate flow: try TON first, then server invoice
   async function donate() {
     const inTelegram = !!(window.Telegram && window.Telegram.WebApp);
     const hasTonWallet = !!(window.ton && typeof window.ton.sendTransaction === "function");
-    const AMOUNT_TON = 1.0;
+
+    // Amount configuration
+    const AMOUNT_TON = 1.0; // example
     const AMOUNT_NANOTON = Math.round(AMOUNT_TON * 1_000_000_000);
 
     if (inTelegram && hasTonWallet) {
@@ -461,6 +462,7 @@ export default function App() {
         const result = await window.ton.sendTransaction(tx);
         const txHash = typeof result === "string" ? result : (result && (result.transactionHash || result.txHash || result.hash));
         if (txHash) {
+          // try verify with server (optional)
           try {
             await fetch("/api/verify-ton-payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ txHash, to: TON_RECEIVER, amountNano: String(AMOUNT_NANOTON) }) });
             alert("Thank you! Payment sent.");
@@ -476,11 +478,13 @@ export default function App() {
       }
     }
 
+    // fallback to invoice endpoint (server should return invoice payload or payment_url)
     try {
       const resp = await fetch("/api/create-invoice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount_label: "Support", currency_hint: "USD" }) });
       if (!resp.ok) throw new Error("invoice_failed");
       const invoicePayload = await resp.json();
 
+      // If Telegram WebApp supports openInvoice
       if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openInvoice === "function") {
         try {
           window.Telegram.WebApp.openInvoice(invoicePayload);
@@ -490,12 +494,14 @@ export default function App() {
         }
       }
 
+      // fallback: open payment_url or copy link
       if (invoicePayload && invoicePayload.payment_url) {
         window.open(invoicePayload.payment_url, "_blank", "noopener,noreferrer");
         return;
       }
     } catch (e) {
       console.error("donate fallback failed", e);
+      // final fallback: copy bot link
       try {
         const fallbackBot = `https://t.me/${BOT_USERNAME}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -511,130 +517,126 @@ export default function App() {
     }
   }
 
-  // UI
+  // UI render
   return (
-    <ErrorBoundary>
-      <div style={{ ...styles.page, background: THEME.bg, color: THEME.text }}>
-        {error && (
-          <div style={{ padding: 8, background: "#3a0f58", color: "#fff", borderRadius: 6, margin: 12 }}>
-            <strong>Runtime error:</strong> {String(error)}
+    <div style={{ ...styles.page, background: THEME.bg, color: THEME.text }}>
+      <Confetti active={allCompleted} />
+      <div style={styles.container}>
+        <header style={styles.header}>
+          <div style={styles.brand}>
+            <div style={{ ...styles.logo, background: `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})` }} aria-hidden>MC</div>
+            <div>
+              <div style={styles.title}>MicroCoach — 5-min workouts</div>
+              <div style={styles.subtitle}>Sequential timer • Donate & share</div>
+            </div>
           </div>
-        )}
-        <div style={styles.container}>
-          <header style={styles.header}>
-            <div style={styles.brand}>
-              <div style={{ ...styles.logo, background: `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})` }} aria-hidden>MC</div>
-              <div>
-                <div style={styles.title}>MicroCoach — 5-min workouts</div>
-                <div style={styles.subtitle}>Stretch, chill or intense — but always on time </div>
-              </div>
+
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 12, color: THEME.accentA, fontWeight: 700 }}>🔥 Streak</div>
+            <div style={{ fontSize: 16, color: THEME.text, fontWeight: 800 }}>{streak} day{streak === 1 ? "" : "s"}</div>
+            <div style={{ fontSize: 11, color: THEME.dim }}>{lastDate ? `last: ${lastDate}` : "not started"}</div>
+          </div>
+        </header>
+
+        <section style={styles.controls}>
+          <div style={styles.controlsRow}>
+            <label style={styles.label}>
+              Intensity
+              <select aria-label="Intensity" value={intensity} onChange={e => setIntensity(e.target.value)} style={styles.select}>
+                <option value="chill">Chill</option>
+                <option value="stretch">Stretch</option>
+                <option value="regular">Regular</option>
+                <option value="intense">Intense</option>
+                <option value="hardcore">Hardcore</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Playlist
+              <select aria-label="Playlist" value={playlist} onChange={e => setPlaylist(e.target.value)} style={styles.select}>
+                <option value="electronic">Techno</option>
+                <option value="lofi">Relaxed</option>
+                <option value="hiphop">Dark Electro</option>
+                <option value="rock">Hard Rock</option>
+                <option value="pop">80s Classic</option>
+              </select>
+            </label>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button aria-label="Generate workout" onClick={generate} disabled={loading || running || paused} style={{ ...styles.buttonPrimary, opacity: (loading || running || paused) ? 0.6 : 1 }}>
+              {loading ? "Curating…" : "Generate Workout"}
+            </button>
+
+            <button aria-label="Reset routine" onClick={() => { setPlan(null); setError(null); setSegments([]); setActiveIndex(-1); setRemainingForActive(0); }} style={styles.buttonGhost} disabled={running || paused}>
+              Reset
+            </button>
+
+            <div style={{ marginLeft: "auto", alignSelf: "center", color: THEME.dim, fontSize: 13 }}>
+              {running ? `In progress — ${formatTime(computeTotalRemaining())}` : paused ? `Paused — ${formatTime(computeTotalRemaining())}` : `Ready • 5 minutes`}
             </div>
+          </div>
 
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 12, color: THEME.accentA, fontWeight: 700 }}>🔥 Streak</div>
-              <div style={{ fontSize: 16, color: THEME.text, fontWeight: 800 }}>{streak} day{streak === 1 ? "" : "s"}</div>
-              <div style={{ fontSize: 11, color: THEME.dim }}>{lastDate ? `last: ${lastDate}` : "not started"}</div>
-            </div>
-          </header>
+          {error && <div style={styles.err}>{error}</div>}
+        </section>
 
-          <section style={styles.controls}>
-            <div style={styles.controlsRow}>
-              <label style={styles.label}>
-                Intensity
-                <select aria-label="Intensity" value={intensity} onChange={e => setIntensity(e.target.value)} style={styles.select}>
-                  <option value="chill">Chill</option>
-                  <option value="stretch">Stretch</option>
-                  <option value="regular">Regular</option>
-                  <option value="intense">Intense</option>
-                  <option value="hardcore">Hardcore</option>
-                </select>
-              </label>
+        <section style={styles.preview}>
+          {!plan && !loading && <div style={styles.empty}>Press Generate to create your 5-min workout</div>}
+          {loading && <div style={{ padding: 16 }}><em>Loading…</em></div>}
 
-              <label style={styles.label}>
-                Playlist
-                <select aria-label="Playlist" value={playlist} onChange={e => setPlaylist(e.target.value)} style={styles.select}>
-                  <option value="pop">80s Classic</option>
-                  <option value="electronic">Techno</option>
-                  <option value="lofi">Relaxed</option>
-                  <option value="hiphop">Dark Electro</option>
-                  <option value="rock">Hard Rock</option>
-                </select>
-              </label>
-            </div>
-
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              <button aria-label="Generate workout" onClick={generate} disabled={loading || running || paused} style={{ ...styles.buttonPrimary, opacity: (loading || running || paused) ? 0.6 : 1 }}>
-                {loading ? "Curating…" : "Generate Workout"}
-              </button>
-
-              <button aria-label="Reset routine" onClick={() => { setPlan(null); setError(null); setSegments([]); setActiveIndex(-1); setRemainingForActive(0); }} style={styles.buttonGhost} disabled={running || paused}>
-                Reset
-              </button>
-
-              <div style={{ marginLeft: "auto", alignSelf: "center", color: THEME.dim, fontSize: 13 }}>
-                {running ? `In progress — ${formatTime(computeTotalRemaining())}` : paused ? `Paused — ${formatTime(computeTotalRemaining())}` : `Ready • 5 minutes`}
-              </div>
-            </div>
-
-            {error && <div style={styles.err}>{error}</div>}
-          </section>
-
-          <section style={styles.preview}>
-            {!plan && !loading && <div style={styles.empty}>Press Generate to create your 5-min workout</div>}
-            {loading && <div style={{ padding: 16 }}><em>Loading…</em></div>}
-
-            {plan && (
-              <div style={styles.planCard}>
-                <div style={styles.planHeader}>
-                  <div>
-                    <div style={styles.planTitle}>Your 5-min {intensity} routine</div>
-                    <div style={styles.planSubtitle}>{plan.intensity_label?.toUpperCase() || intensity}</div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button aria-label="Save workout" onClick={save} style={styles.smallBtn} disabled={running || paused}>Save</button>
-
-                    <a aria-label="Open playlist" href={(PLAYLISTS[playlist] && PLAYLISTS[playlist][0] && PLAYLISTS[playlist][0].query) ? PLAYLISTS[playlist][0].query : "#"} target="_blank" rel="noreferrer" style={styles.linkBtn}>Open playlist</a>
-                  </div>
+          {plan && (
+            <div style={styles.planCard}>
+              <div style={styles.planHeader}>
+                <div>
+                  <div style={styles.planTitle}>Your 5-min {intensity} routine</div>
+                  <div style={styles.planSubtitle}>{plan.intensity_label?.toUpperCase() || intensity}</div>
                 </div>
 
-                <div style={styles.steps}>
-                  {segments.map((s, i) => (
-                    <ExerciseRow key={i} idx={i} step={s} activeIndex={activeIndex} remainingForActive={i === activeIndex ? remainingForActive : 0} icons={icons} />
-                  ))}
-                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button aria-label="Save workout" onClick={save} style={styles.smallBtn} disabled={running || paused}>Save</button>
 
-                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  {!running && !paused ? (
-                    <button aria-label="Start workout" onClick={startOrResumeRoutine} style={styles.primaryBtn} disabled={segments.length === 0}>
-                      Start workout
-                    </button>
-                  ) : running && !paused ? (
-                    <button aria-label="Pause workout" onClick={pauseRoutine} style={styles.ghostBtn}>Pause</button>
-                  ) : paused ? (
-                    <button aria-label="Resume workout" onClick={startOrResumeRoutine} style={styles.primaryBtn}>Resume</button>
-                  ) : null}
-
-                  <button aria-label="Stop workout" onClick={stopRoutine} style={styles.ghostBtn} disabled={!running && !paused}>Stop</button>
-
-                  <button aria-label="Share app" onClick={() => shareApp()} style={styles.ghostBtn} disabled={running || paused}>Share</button>
-
-                  {allCompleted && (
-                    <button aria-label="Support / Donate" onClick={donate} style={{ ...styles.primaryBtn, background: `linear-gradient(90deg, ${THEME.success}, ${THEME.accentB})` }}>
-                      Support if you like the app!
-                    </button>
-                  )}
+                  {/* ---------------- PLAYLIST LINKS: update your playlists in PLAYLISTS constant above --------------- */}
+                  <a aria-label="Open playlist" href={(PLAYLISTS[playlist] && PLAYLISTS[playlist][0] && PLAYLISTS[playlist][0].query) ? PLAYLISTS[playlist][0].query : "#"} target="_blank" rel="noreferrer" style={styles.linkBtn}>Open playlist</a>
+                  {/* ----------------------------------------------------------------------------------------------- */}
                 </div>
               </div>
-            )}
-          </section>
-        </div>
+
+              <div style={styles.steps}>
+                {segments.map((s, i) => (
+                  <ExerciseRow key={i} idx={i} step={s} activeIndex={activeIndex} remainingForActive={i === activeIndex ? remainingForActive : 0} />
+                ))}
+              </div>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                {!running && !paused ? (
+                  <button aria-label="Start workout" onClick={startOrResumeRoutine} style={styles.primaryBtn} disabled={segments.length === 0}>
+                    Start workout
+                  </button>
+                ) : running && !paused ? (
+                  <button aria-label="Pause workout" onClick={pauseRoutine} style={styles.ghostBtn}>Pause</button>
+                ) : paused ? (
+                  <button aria-label="Resume workout" onClick={startOrResumeRoutine} style={styles.primaryBtn}>Resume</button>
+                ) : null}
+
+                <button aria-label="Stop workout" onClick={stopRoutine} style={styles.ghostBtn} disabled={!running && !paused}>Stop</button>
+
+                <button aria-label="Share app" onClick={() => shareApp()} style={styles.ghostBtn} disabled={running || paused}>Share</button>
+
+                {allCompleted && (
+                  <button aria-label="Support / Donate" onClick={donate} style={{ ...styles.primaryBtn, background: `linear-gradient(90deg, ${THEME.success}, ${THEME.accentB})` }}>
+                    Support • Donate
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
       </div>
-    </ErrorBoundary>
+    </div>
   );
 }
 
-// styles (kept same as original where possible)
+// ---------- styles ----------
 const styles = {
   page: { minHeight: "100vh", padding: 12, fontFamily: "Inter, system-ui, Arial" },
   confettiWrap: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 },
@@ -667,6 +669,5 @@ const styles = {
   stepMeta: { color: "#9fb3c4", fontSize: 13 },
   smallBtn: { background: "#0f1724", color: "#9be7ff", padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" },
   linkBtn: { color: "#9be7ff", background: "transparent", border: "1px solid rgba(255,255,255,0.03)", padding: "6px 8px", borderRadius: 8, textDecoration: "none" },
-  err: { marginTop: 8, color: "#ff7b7b" },
-  ghostBtn: { padding: "10px 12px", borderRadius: 10, background: "transparent", color: "#9fb3c4", border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" }
+  err: { marginTop: 8, color: "#ff7b7b" }
 };

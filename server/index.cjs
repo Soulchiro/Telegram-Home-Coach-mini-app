@@ -1,5 +1,8 @@
 // server/index.cjs
-// Clean, self-contained server for MicroCoach (fixed static serving & SPA fallback)
+// Clean, self-contained server for MicroCoach
+// - Express API: /api/generate-workout, /api/save-workout, /api/create-invoice, /health
+// - Safe Telegram bot startup (verifies token first)
+// - Uses a single POOLS object and buildRoutine (no POOL_REGULAR undefined bug)
 
 const express = require("express");
 const path = require("path");
@@ -15,7 +18,7 @@ app.use(express.json());
 
 const PORT = Number(process.env.PORT || 10000);
 
-// ------------------ POOLS (same as your original) ------------------
+// ------------------ POOLS (expanded lists, ~20 each) ------------------
 const POOLS = {
   chill: [
     { name: "Neck rolls", base: 20, unit: "time", slug: "neck-rolls" },
@@ -134,80 +137,67 @@ const POOLS = {
 };
 
 // ------------------ Utilities ------------------
-function shuffleArray(a) {
-  const arr = a.slice();
-  for (let i = arr.length - 1; i > 0; i--) {
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return arr;
+  return a;
 }
 
-// pickUnique - pick up to n unique items from a pool (returns shallow copies)
-function pickUnique(pool, n) {
-  const pick = shuffleArray(pool).slice(0, Math.min(n, pool.length));
-  return pick.map(x => ({ ...x }));
+function pickUnique(arr, n) {
+  const s = shuffle(arr);
+  return s.slice(0, Math.min(n, s.length));
 }
 
-// distributeDurations and buildRoutine (kept as you had them)
-function distributeDurations(items, MAIN_SEC, minSec = 6) {
-  if (!items || items.length === 0) return items;
-  const timeItems = items.map(it => ({ ...it }));
-  const totalBase = timeItems.reduce((s, it) => s + (it.base || 30), 0) || 1;
-
-  const result = timeItems.map((it) => {
-    const share = ((it.base || 30) / totalBase) * MAIN_SEC;
-    const secs = Math.max(minSec, Math.round(share));
-    return { ...it, duration_or_reps: secs, unit: it.unit || "time" };
-  });
-
-  const sumAssigned = result.reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
-  const diff = MAIN_SEC - sumAssigned;
-  if (diff !== 0) {
-    for (let i = result.length - 1; i >= 0; i--) {
-      if (result[i].unit === "time") {
-        result[i].duration_or_reps = Math.max(minSec, Number(result[i].duration_or_reps) + diff);
-        break;
-      }
-    }
-  }
-
-  return result;
-}
-
+// ------------------ Build routine (single canonical function) ------------------
 function buildRoutine(intensity = "regular") {
+  // duration is fixed 5 minutes (300s)
   const TOTAL_SEC = 5 * 60;
-  const MAIN_SEC = TOTAL_SEC;
+  // reserve small cooldown
+  const COOLDOWN_SEC = 40;
+  const MAIN_SEC = TOTAL_SEC - COOLDOWN_SEC;
 
   const key = String(intensity || "regular").toLowerCase();
   const pool = POOLS[key] || POOLS.regular;
 
-  let count;
-  switch (key) {
-    case "chill": count = 5; break;
-    case "stretch": count = 5; break;
-    case "regular": count = 6; break;
-    case "intense": count = 6; break;
-    case "hardcore": count = 6; break;
-    default: count = 6;
+  // choose 4 unique main exercises (more variety)
+  const mainChoices = pickUnique(pool, 4);
+
+  // assign seconds proportional to base values (but ensure integer secs and >=6s)
+  const totalBase = mainChoices.reduce((s, x) => s + (x.base || 30), 0) || 1;
+  const main = mainChoices.map((it) => {
+    const base = it.base || 30;
+    const secs = Math.max(6, Math.round((base / totalBase) * MAIN_SEC));
+    return {
+      name: it.name,
+      unit: it.unit || "time",
+      duration_or_reps: secs,
+      notes: it.notes || ""
+    };
+  });
+
+  // fix rounding differences (adjust last)
+  const assigned = main.reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
+  const diff = MAIN_SEC - assigned;
+  if (diff !== 0 && main.length) {
+    main[main.length - 1].duration_or_reps = Math.max(6, main[main.length - 1].duration_or_reps + diff);
   }
 
-  const picked = pickUnique(pool, count);
-  const withDurations = distributeDurations(picked, MAIN_SEC, 6);
-  const mainShuffled = shuffleArray(withDurations);
+  // cooldown: pick 2 short stretches
+  const cooldownPool = [
+    { name: "Child's pose", duration: 20 },
+    { name: "Hamstring stretch", duration: 20 },
+    { name: "Seated forward fold", duration: 20 },
+    { name: "Chest opener", duration: 20 }
+  ];
+  const cooldownChoices = pickUnique(cooldownPool, 2);
+  const cooldown = cooldownChoices.map(c => ({ name: c.name, unit: "time", duration_or_reps: Math.round(COOLDOWN_SEC / cooldownChoices.length) }));
 
-  const main = mainShuffled.map(it => ({
-    name: it.name,
-    slug: it.slug || (it.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")),
-    unit: it.unit || "time",
-    duration_or_reps: Number(it.duration_or_reps || 20),
-    notes: it.notes || ""
-  }));
-
-  const cooldown = [];
-
+  // playlist hint
   const playlist = [
-    { title: `${key} mix`, hint: `${key} playlist`, query: `https://www.youtube.com/results?search_query=${encodeURIComponent(key + " workout mix 5 minutes")}` }
+    { title: `${key} mix`, hint: `${key} playlist`, query: `https://www.youtube.com/results?search_query=${encodeURIComponent(key + " workout mix")}` }
   ];
 
   return {
@@ -224,6 +214,7 @@ app.get("/health", (req, res) => res.json({ ok: true, app: APP_NAME, time: new D
 
 app.post("/api/generate-workout", (req, res) => {
   try {
+    // Accept either JSON body with level, or query intensity
     const bodyLevel = req.body && req.body.level ? String(req.body.level) : null;
     const queryLevel = req.query && req.query.intensity ? String(req.query.intensity) : null;
     const intensity = (bodyLevel || queryLevel || "regular").toLowerCase();
@@ -253,8 +244,13 @@ app.post("/api/save-workout", (req, res) => {
   }
 });
 
+// Simple /api/create-invoice fallback (returns payment_url or invoice payload)
+// If you integrate Telegraf's createInvoiceLink, replace the fallback with a proper invoice payload.
 app.post("/api/create-invoice", async (req, res) => {
   try {
+    // Accept amount/currency in body if you want
+    const body = req.body || {};
+    // Basic fallback: return a payment URL to bot or support page
     const botUsername = process.env.BOT_USERNAME || "";
     const fallbackUrl = botUsername ? `https://t.me/${botUsername}` : "https://t.me";
     return res.json({ payment_url: fallbackUrl, message: "Fallback invoice. Implement createInvoiceLink on the server for proper invoices." });
@@ -264,51 +260,17 @@ app.post("/api/create-invoice", async (req, res) => {
   }
 });
 
-// ------------------ Serve frontend (robust) ------------------
-// Accept either frontend/dist or frontend/build (common cases) and serve static.
-// Important: only return index.html for requests that accept HTML and are not API calls or asset requests.
-
-const frontendRootCandidates = [
-  path.join(__dirname, "..", "frontend", "dist"),
-  path.join(__dirname, "..", "frontend", "build")
-];
-
-let frontendDist = null;
-for (const cand of frontendRootCandidates) {
-  if (fs.existsSync(cand)) {
-    frontendDist = cand;
-    break;
-  }
-}
-
-if (frontendDist) {
-  console.log("Serving frontend from:", frontendDist);
+// ------------------ Serve frontend (if built) ------------------
+const frontendDist = path.join(__dirname, "..", "frontend", "dist");
+if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
-
-  // Only serve index.html for requests that likely want HTML (e.g., browser navigation),
-  // but don't rewrite asset requests (like .js/.css) or API calls.
   app.get("*", (req, res) => {
-    // Skip API routes
-    if (req.path.startsWith("/api") || req.path.startsWith("/health")) {
-      return res.status(404).end();
-    }
-    // If request explicitly wants a non-HTML file (has extension) then return 404 instead of index.html
-    const ext = path.extname(req.path);
-    if (ext) {
-      // log missing asset for easier debugging
-      console.warn("Missing static asset requested:", req.path);
-      return res.status(404).end();
-    }
-    // If client accepts HTML, return index.html
-    if (req.headers.accept && req.headers.accept.indexOf("text/html") !== -1) {
-      return res.sendFile(path.join(frontendDist, "index.html"));
-    }
-    return res.status(404).end();
+    res.sendFile(path.join(frontendDist, "index.html"));
   });
 } else {
   app.get("/", (req, res) => {
     res.type("text").send(
-      "Frontend not found. Build it and place at frontend/dist or frontend/build\n\nFrom project root:\n  cd frontend\n  npm run build\n\nThen restart server."
+      "Frontend not found. Build it and place at frontend/dist\n\nFrom project root:\n  npm run build\n\nThen restart server."
     );
   });
 }
@@ -370,6 +332,7 @@ async function startBotSafely() {
   }
 }
 
+// start bot without blocking main flow
 startBotSafely().catch(e => console.error("startBotSafely err:", e));
 
 // ------------------ Start server ------------------
@@ -377,5 +340,6 @@ const server = app.listen(PORT, () => {
   console.log(`${APP_NAME} server running: http://localhost:${PORT}`);
 });
 
+// graceful shutdown
 process.on("SIGINT", () => { console.log("SIGINT -> shutting down"); server.close(() => process.exit(0)); });
 process.on("SIGTERM", () => { console.log("SIGTERM -> shutting down"); server.close(() => process.exit(0)); });
