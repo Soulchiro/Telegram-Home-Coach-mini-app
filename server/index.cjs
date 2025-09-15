@@ -1,8 +1,5 @@
 // server/index.cjs
-// Clean, self-contained server for MicroCoach
-// - Express API: /api/generate-workout, /api/save-workout, /api/create-invoice, /health
-// - Safe Telegram bot startup (verifies token first)
-// - Uses a single POOLS object and buildRoutine (no POOL_REGULAR undefined bug)
+// Clean, self-contained server for MicroCoach (fixed static serving & SPA fallback)
 
 const express = require("express");
 const path = require("path");
@@ -18,8 +15,7 @@ app.use(express.json());
 
 const PORT = Number(process.env.PORT || 10000);
 
-// ------------------ POOLS (expanded lists, ~20 each) ------------------
-// Paste this as your POOLS object in server/index.cjs (replaces previous pools)
+// ------------------ POOLS (same as your original) ------------------
 const POOLS = {
   chill: [
     { name: "Neck rolls", base: 20, unit: "time", slug: "neck-rolls" },
@@ -137,25 +133,7 @@ const POOLS = {
   ]
 };
 
-
 // ------------------ Utilities ------------------
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function pickUnique(arr, n) {
-  const s = shuffle(arr);
-  return s.slice(0, Math.min(n, s.length));
-}
-
-// ------------------ Helpers & buildRoutine (drop-in replacement) ------------------
-
-// shuffleArray - Fisher-Yates
 function shuffleArray(a) {
   const arr = a.slice();
   for (let i = arr.length - 1; i > 0; i--) {
@@ -171,20 +149,18 @@ function pickUnique(pool, n) {
   return pick.map(x => ({ ...x }));
 }
 
-// distributeDurations - split MAIN_SEC proportionally by item.base, ensure integers and exact sum
+// distributeDurations and buildRoutine (kept as you had them)
 function distributeDurations(items, MAIN_SEC, minSec = 6) {
   if (!items || items.length === 0) return items;
-  const timeItems = items.map(it => ({ ...it })); // copy so we don't mutate POOLS
+  const timeItems = items.map(it => ({ ...it }));
   const totalBase = timeItems.reduce((s, it) => s + (it.base || 30), 0) || 1;
 
-  // First pass: proportional allocation (rounded)
   const result = timeItems.map((it) => {
     const share = ((it.base || 30) / totalBase) * MAIN_SEC;
     const secs = Math.max(minSec, Math.round(share));
     return { ...it, duration_or_reps: secs, unit: it.unit || "time" };
   });
 
-  // Fix rounding mismatch by adjusting the last time-unit item
   const sumAssigned = result.reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
   const diff = MAIN_SEC - sumAssigned;
   if (diff !== 0) {
@@ -199,15 +175,13 @@ function distributeDurations(items, MAIN_SEC, minSec = 6) {
   return result;
 }
 
-// buildRoutine - uses full 5 minutes (300s) for main, returns slug & empty cooldown
 function buildRoutine(intensity = "regular") {
-  const TOTAL_SEC = 5 * 60; // 300s used entirely for main
+  const TOTAL_SEC = 5 * 60;
   const MAIN_SEC = TOTAL_SEC;
 
   const key = String(intensity || "regular").toLowerCase();
   const pool = POOLS[key] || POOLS.regular;
 
-  // Decide how many main exercises to pick
   let count;
   switch (key) {
     case "chill": count = 5; break;
@@ -218,16 +192,10 @@ function buildRoutine(intensity = "regular") {
     default: count = 6;
   }
 
-  // Pick unique exercises from the chosen pool only
   const picked = pickUnique(pool, count);
-
-  // Distribute MAIN_SEC across picked items
   const withDurations = distributeDurations(picked, MAIN_SEC, 6);
-
-  // Shuffle final order to avoid predictable long/short sequence
   const mainShuffled = shuffleArray(withDurations);
 
-  // Normalize the returned objects and include slug
   const main = mainShuffled.map(it => ({
     name: it.name,
     slug: it.slug || (it.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")),
@@ -236,7 +204,6 @@ function buildRoutine(intensity = "regular") {
     notes: it.notes || ""
   }));
 
-  // Cooldown removed (empty array for compatibility)
   const cooldown = [];
 
   const playlist = [
@@ -252,14 +219,11 @@ function buildRoutine(intensity = "regular") {
   };
 }
 
-
-
 // ------------------ API endpoints ------------------
 app.get("/health", (req, res) => res.json({ ok: true, app: APP_NAME, time: new Date().toISOString() }));
 
 app.post("/api/generate-workout", (req, res) => {
   try {
-    // Accept either JSON body with level, or query intensity
     const bodyLevel = req.body && req.body.level ? String(req.body.level) : null;
     const queryLevel = req.query && req.query.intensity ? String(req.query.intensity) : null;
     const intensity = (bodyLevel || queryLevel || "regular").toLowerCase();
@@ -289,13 +253,8 @@ app.post("/api/save-workout", (req, res) => {
   }
 });
 
-// Simple /api/create-invoice fallback (returns payment_url or invoice payload)
-// If you integrate Telegraf's createInvoiceLink, replace the fallback with a proper invoice payload.
 app.post("/api/create-invoice", async (req, res) => {
   try {
-    // Accept amount/currency in body if you want
-    const body = req.body || {};
-    // Basic fallback: return a payment URL to bot or support page
     const botUsername = process.env.BOT_USERNAME || "";
     const fallbackUrl = botUsername ? `https://t.me/${botUsername}` : "https://t.me";
     return res.json({ payment_url: fallbackUrl, message: "Fallback invoice. Implement createInvoiceLink on the server for proper invoices." });
@@ -305,17 +264,51 @@ app.post("/api/create-invoice", async (req, res) => {
   }
 });
 
-// ------------------ Serve frontend (if built) ------------------
-const frontendDist = path.join(__dirname, "..", "frontend", "dist");
-if (fs.existsSync(frontendDist)) {
+// ------------------ Serve frontend (robust) ------------------
+// Accept either frontend/dist or frontend/build (common cases) and serve static.
+// Important: only return index.html for requests that accept HTML and are not API calls or asset requests.
+
+const frontendRootCandidates = [
+  path.join(__dirname, "..", "frontend", "dist"),
+  path.join(__dirname, "..", "frontend", "build")
+];
+
+let frontendDist = null;
+for (const cand of frontendRootCandidates) {
+  if (fs.existsSync(cand)) {
+    frontendDist = cand;
+    break;
+  }
+}
+
+if (frontendDist) {
+  console.log("Serving frontend from:", frontendDist);
   app.use(express.static(frontendDist));
+
+  // Only serve index.html for requests that likely want HTML (e.g., browser navigation),
+  // but don't rewrite asset requests (like .js/.css) or API calls.
   app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendDist, "index.html"));
+    // Skip API routes
+    if (req.path.startsWith("/api") || req.path.startsWith("/health")) {
+      return res.status(404).end();
+    }
+    // If request explicitly wants a non-HTML file (has extension) then return 404 instead of index.html
+    const ext = path.extname(req.path);
+    if (ext) {
+      // log missing asset for easier debugging
+      console.warn("Missing static asset requested:", req.path);
+      return res.status(404).end();
+    }
+    // If client accepts HTML, return index.html
+    if (req.headers.accept && req.headers.accept.indexOf("text/html") !== -1) {
+      return res.sendFile(path.join(frontendDist, "index.html"));
+    }
+    return res.status(404).end();
   });
 } else {
   app.get("/", (req, res) => {
     res.type("text").send(
-      "Frontend not found. Build it and place at frontend/dist\n\nFrom project root:\n  npm run build\n\nThen restart server."
+      "Frontend not found. Build it and place at frontend/dist or frontend/build\n\nFrom project root:\n  cd frontend\n  npm run build\n\nThen restart server."
     );
   });
 }
@@ -377,7 +370,6 @@ async function startBotSafely() {
   }
 }
 
-// start bot without blocking main flow
 startBotSafely().catch(e => console.error("startBotSafely err:", e));
 
 // ------------------ Start server ------------------
@@ -385,6 +377,5 @@ const server = app.listen(PORT, () => {
   console.log(`${APP_NAME} server running: http://localhost:${PORT}`);
 });
 
-// graceful shutdown
 process.on("SIGINT", () => { console.log("SIGINT -> shutting down"); server.close(() => process.exit(0)); });
 process.on("SIGTERM", () => { console.log("SIGTERM -> shutting down"); server.close(() => process.exit(0)); });
