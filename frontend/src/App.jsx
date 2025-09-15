@@ -672,6 +672,5 @@ const styles = {
   smallBtn: { background: "#0f1724", color: "#9be7ff", padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" },
   linkBtn: { color: "#9be7ff", background: "transparent", border: "1px solid rgba(255,255,255,0.03)", padding: "6px 8px", borderRadius: 8, textDecoration: "none" },
   err: { marginTop: 8, color: "#ff7b7b" },
-  primaryBtn: { padding: "10px 16px", borderRadius: 12, border: "none", cursor: "pointer", background: `linear-gradient(90deg, ${THEME.accentA}, ${THEME.accentB})`, color: "#021826", fontWeight: 800 },
   ghostBtn: { padding: "10px 12px", borderRadius: 10, background: "transparent", color: "#9fb3c4", border: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" }
 };
