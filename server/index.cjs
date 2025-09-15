@@ -151,53 +151,94 @@ function pickUnique(arr, n) {
   return s.slice(0, Math.min(n, s.length));
 }
 
-// ------------------ Build routine (single canonical function) ------------------
+// ------------------ Helpers & buildRoutine (drop-in replacement) ------------------
+
+// shuffleArray - Fisher-Yates
+function shuffleArray(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// pickUnique - pick up to n unique items from a pool (returns shallow copies)
+function pickUnique(pool, n) {
+  const pick = shuffleArray(pool).slice(0, Math.min(n, pool.length));
+  return pick.map(x => ({ ...x }));
+}
+
+// distributeDurations - split MAIN_SEC proportionally by item.base, ensure integers and exact sum
+function distributeDurations(items, MAIN_SEC, minSec = 6) {
+  if (!items || items.length === 0) return items;
+  const timeItems = items.map(it => ({ ...it })); // copy so we don't mutate POOLS
+  const totalBase = timeItems.reduce((s, it) => s + (it.base || 30), 0) || 1;
+
+  // First pass: proportional allocation (rounded)
+  const result = timeItems.map((it) => {
+    const share = ((it.base || 30) / totalBase) * MAIN_SEC;
+    const secs = Math.max(minSec, Math.round(share));
+    return { ...it, duration_or_reps: secs, unit: it.unit || "time" };
+  });
+
+  // Fix rounding mismatch by adjusting the last time-unit item
+  const sumAssigned = result.reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
+  const diff = MAIN_SEC - sumAssigned;
+  if (diff !== 0) {
+    for (let i = result.length - 1; i >= 0; i--) {
+      if (result[i].unit === "time") {
+        result[i].duration_or_reps = Math.max(minSec, Number(result[i].duration_or_reps) + diff);
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+// buildRoutine - uses full 5 minutes (300s) for main, returns slug & empty cooldown
 function buildRoutine(intensity = "regular") {
-  // duration is fixed 5 minutes (300s)
-  const TOTAL_SEC = 5 * 60;
-  // reserve small cooldown
-  const COOLDOWN_SEC = 40;
-  const MAIN_SEC = TOTAL_SEC - COOLDOWN_SEC;
+  const TOTAL_SEC = 5 * 60; // 300s used entirely for main
+  const MAIN_SEC = TOTAL_SEC;
 
   const key = String(intensity || "regular").toLowerCase();
   const pool = POOLS[key] || POOLS.regular;
 
-  // choose 4 unique main exercises (more variety)
-  const mainChoices = pickUnique(pool, 4);
-
-  // assign seconds proportional to base values (but ensure integer secs and >=6s)
-  const totalBase = mainChoices.reduce((s, x) => s + (x.base || 30), 0) || 1;
-  const main = mainChoices.map((it) => {
-    const base = it.base || 30;
-    const secs = Math.max(6, Math.round((base / totalBase) * MAIN_SEC));
-    return {
-      name: it.name,
-      unit: it.unit || "time",
-      duration_or_reps: secs,
-      notes: it.notes || ""
-    };
-  });
-
-  // fix rounding differences (adjust last)
-  const assigned = main.reduce((s, it) => s + (it.unit === "time" ? Number(it.duration_or_reps) : 0), 0);
-  const diff = MAIN_SEC - assigned;
-  if (diff !== 0 && main.length) {
-    main[main.length - 1].duration_or_reps = Math.max(6, main[main.length - 1].duration_or_reps + diff);
+  // Decide how many main exercises to pick
+  let count;
+  switch (key) {
+    case "chill": count = 5; break;
+    case "stretch": count = 5; break;
+    case "regular": count = 5; break;
+    case "intense": count = 6; break;
+    case "hardcore": count = 6; break;
+    default: count = 5;
   }
 
-  // cooldown: pick 2 short stretches
-  const cooldownPool = [
-    { name: "Child's pose", duration: 20 },
-    { name: "Hamstring stretch", duration: 20 },
-    { name: "Seated forward fold", duration: 20 },
-    { name: "Chest opener", duration: 20 }
-  ];
-  const cooldownChoices = pickUnique(cooldownPool, 2);
-  const cooldown = cooldownChoices.map(c => ({ name: c.name, unit: "time", duration_or_reps: Math.round(COOLDOWN_SEC / cooldownChoices.length) }));
+  // Pick unique exercises from the chosen pool only
+  const picked = pickUnique(pool, count);
 
-  // playlist hint
+  // Distribute MAIN_SEC across picked items
+  const withDurations = distributeDurations(picked, MAIN_SEC, 6);
+
+  // Shuffle final order to avoid predictable long/short sequence
+  const mainShuffled = shuffleArray(withDurations);
+
+  // Normalize the returned objects and include slug
+  const main = mainShuffled.map(it => ({
+    name: it.name,
+    slug: it.slug || (it.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")),
+    unit: it.unit || "time",
+    duration_or_reps: Number(it.duration_or_reps || 20),
+    notes: it.notes || ""
+  }));
+
+  // Cooldown removed (empty array for compatibility)
+  const cooldown = [];
+
   const playlist = [
-    { title: `${key} mix`, hint: `${key} playlist`, query: `https://www.youtube.com/results?search_query=${encodeURIComponent(key + " workout mix")}` }
+    { title: `${key} mix`, hint: `${key} playlist`, query: `https://www.youtube.com/results?search_query=${encodeURIComponent(key + " workout mix 5 minutes")}` }
   ];
 
   return {
@@ -208,6 +249,7 @@ function buildRoutine(intensity = "regular") {
     playlist
   };
 }
+
 
 // ------------------ API endpoints ------------------
 app.get("/health", (req, res) => res.json({ ok: true, app: APP_NAME, time: new Date().toISOString() }));
